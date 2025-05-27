@@ -2,22 +2,67 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
+	"github.com/conductorone/baton-sumo-logic/pkg/client"
 )
 
-type userBuilder struct{}
+type userBuilder struct {
+	service                client.ClientService
+	includeServiceAccounts bool
+}
 
 func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return userResourceType
 }
 
-// List returns all the users from the database as resource objects.
-// Users include a UserTrait because they are the 'shape' of a standard user.
-func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+// List returns all accounts (human and service accounts) from Sumo Logic as resource objects.
+func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+	outputAnnotations := annotations.New()
+	resources := make([]*v2.Resource, 0)
+
+	// Service accounts endpoint does not support pagination, so we only fetch them on the first page.
+	if pToken.Token == "" && o.includeServiceAccounts {
+		// Fetch both human and service accounts
+		serviceAccounts, rateLimit, err := o.service.GetServiceAccounts(ctx)
+		outputAnnotations.WithRateLimiting(rateLimit)
+		if err != nil {
+			return nil, "", outputAnnotations, fmt.Errorf("failed to get service accounts: %w", err)
+		}
+
+		// Process service accounts
+		for _, serviceAccount := range serviceAccounts {
+			serviceAccountCopy := serviceAccount
+			userResource, err := createUserResource(&serviceAccountCopy)
+			if err != nil {
+				return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from service account: %w", err)
+			}
+			resources = append(resources, userResource)
+		}
+	}
+
+	// Fetch and process human accounts
+	humanAccounts, nextPageToken, rateLimit, err := o.service.GetUsers(ctx, parsePageToken(pToken))
+	outputAnnotations.WithRateLimiting(rateLimit)
+	if err != nil {
+		return nil, "", outputAnnotations, fmt.Errorf("failed to get human accounts: %w", err)
+	}
+
+	// Process human accounts
+	for _, humanAccount := range humanAccounts {
+		humanAccountCopy := humanAccount
+		userResource, err := createUserResource(&humanAccountCopy)
+		if err != nil {
+			return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from human account: %w", err)
+		}
+		resources = append(resources, userResource)
+	}
+
+	return resources, createPageToken(nextPageToken), outputAnnotations, nil
 }
 
 // Entitlements always returns an empty slice for users.
@@ -30,6 +75,76 @@ func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	return nil, "", nil, nil
 }
 
-func newUserBuilder() *userBuilder {
-	return &userBuilder{}
+func newUserBuilder(cclient *client.Client, includeServiceAccounts bool) *userBuilder {
+	return &userBuilder{
+		service:                client.NewClientService(cclient),
+		includeServiceAccounts: includeServiceAccounts,
+	}
+}
+
+// createUserResource creates a resource object for either a UserResponse or ServiceAccountResponse.
+func createUserResource(account interface{}) (*v2.Resource, error) {
+	var fullName string
+	var base client.BaseAccount
+	switch a := account.(type) {
+	case *client.UserResponse:
+		base = a.BaseAccount
+	case *client.ServiceAccountResponse:
+		base = a.BaseAccount
+	default:
+		return nil, fmt.Errorf("unsupported account type: %T", account)
+	}
+
+	profile := map[string]interface{}{
+		"id":          base.ID,
+		"email":       base.Email,
+		"created_at":  base.CreatedAt,
+		"created_by":  base.CreatedBy,
+		"modified_by": base.ModifiedBy,
+		"modified_at": base.ModifiedAt,
+	}
+
+	userTraitOptions := []rs.UserTraitOption{}
+
+	// Handle active status
+	if base.IsActive == nil || !*base.IsActive {
+		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_DISABLED))
+	} else {
+		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_ENABLED))
+	}
+
+	// Handle specific account types
+	switch a := account.(type) {
+	case *client.UserResponse:
+		fullName = a.FirstName + " " + a.LastName
+		profile["full_name"] = fullName
+
+		// Add optional human user fields
+		if a.IsLocked != nil && *a.IsLocked {
+			profile["is_locked"] = *a.IsLocked
+		}
+		if a.IsMfaEnabled != nil {
+			profile["mfa_enabled"] = *a.IsMfaEnabled
+		}
+		if a.LastLoginTimestamp != nil {
+			profile["last_login"] = *a.LastLoginTimestamp
+		}
+		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_HUMAN))
+
+	case *client.ServiceAccountResponse:
+		fullName = a.Name
+		profile["full_name"] = fullName
+		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_SERVICE))
+
+	default:
+		return nil, fmt.Errorf("unsupported account type: %T", account)
+	}
+
+	// Create the resource
+	return rs.NewUserResource(
+		fullName,
+		userResourceType,
+		base.ID,
+		userTraitOptions,
+	)
 }
