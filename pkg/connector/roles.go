@@ -11,6 +11,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-sumo-logic/pkg/client"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 const roleAssignmentEntitlement = "assigned"
@@ -86,6 +88,75 @@ func (o *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	return rv, "", outputAnnotations, nil
+}
+
+func (o *roleBuilder) Grant(
+	ctx context.Context,
+	principal *v2.Resource,
+	entitlement *v2.Entitlement,
+) (annotations.Annotations, error) {
+	logger := ctxzap.Extract(ctx)
+
+	if principal.Id.ResourceType != userResourceType.Id {
+		logger.Warn(
+			"baton-sumo-logic: only users can be assigned to a role",
+			zap.String("principal_type", principal.Id.ResourceType),
+			zap.String("principal_id", principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("baton-sumo-logic: only users can be assigned to a role")
+	}
+
+	outputAnnotations := annotations.New()
+	_, rateLimitData, err := o.service.AssignRoleToUser(
+		ctx,
+		entitlement.Resource.Id.Resource,
+		principal.Id.Resource,
+	)
+	outputAnnotations.WithRateLimiting(rateLimitData)
+
+	if err != nil {
+		// We are not checking if the grant is already exists because the API DOC does not provide specific information.
+		// API Doc: https://api.sumologic.com/docs/#operation/assignRoleToUser
+		return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to assign role to user: %w", err)
+	}
+
+	return outputAnnotations, nil
+}
+
+func (o *roleBuilder) Revoke(
+	ctx context.Context,
+	grant *v2.Grant,
+) (
+	annotations.Annotations,
+	error,
+) {
+	logger := ctxzap.Extract(ctx)
+
+	if grant.Principal.Id.ResourceType != userResourceType.Id {
+		logger.Warn(
+			"baton-sumo-logic: only users can be assigned to a role",
+			zap.String("principal_type", grant.Principal.Id.ResourceType),
+			zap.String("principal_id", grant.Principal.Id.Resource),
+		)
+		return nil, fmt.Errorf("baton-sumo-logic: only users can be revoked from a role")
+	}
+
+	outputAnnotations := annotations.New()
+
+	_, rateLimitData, err := o.service.RemoveRoleFromUser(
+		ctx,
+		grant.Entitlement.Resource.Id.Resource,
+		grant.Principal.Id.Resource,
+	)
+	outputAnnotations.WithRateLimiting(rateLimitData)
+
+	if err != nil {
+		// We are not checking if the grant was already revoked because the API DOC does not provide specific information.
+		// API Doc: https://api.sumologic.com/docs/#operation/assignRoleToUser
+		return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to revoke role from user: %w", err)
+	}
+
+	return outputAnnotations, nil
 }
 
 func newRoleBuilder(cclient *client.Client) *roleBuilder {

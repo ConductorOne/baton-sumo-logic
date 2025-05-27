@@ -12,6 +12,8 @@ type ClientService interface {
 	GetServiceAccounts(ctx context.Context) ([]ServiceAccountResponse, *v2.RateLimitDescription, error)
 	GetRoles(ctx context.Context, pageToken *string) ([]RoleResponse, *string, *v2.RateLimitDescription, error)
 	GetRole(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error)
+	AssignRoleToUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error)
+	RemoveRoleFromUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error)
 }
 
 // ClientServiceImpl is the default implementation that calls the actual API.
@@ -37,4 +39,12 @@ func (s *ClientServiceImpl) GetRoles(ctx context.Context, pageToken *string) ([]
 
 func (s *ClientServiceImpl) GetRole(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error) {
 	return s.client.getRole(ctx, roleId)
+}
+
+func (s *ClientServiceImpl) AssignRoleToUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	return s.client.assignRoleToUser(ctx, roleId, userId)
+}
+
+func (s *ClientServiceImpl) RemoveRoleFromUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	return s.client.removeRoleFromUser(ctx, roleId, userId)
 }

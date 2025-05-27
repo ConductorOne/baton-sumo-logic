@@ -9,6 +9,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sumo-logic/pkg/client"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -119,5 +120,134 @@ func TestRolesList(t *testing.T) {
 		require.NotNil(t, token)
 		AssertNoRatelimitAnnotations(t, annotations)
 		require.Nil(t, err)
+	})
+}
+
+func TestRoleGrantAndRevoke(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("Grant operation for role with valid principal and entitlement", func(t *testing.T) {
+		roleBuilder, mockService := newTestRoleBuilder()
+		// Mock the add user to role call.
+		mockService.AssignRoleToUserFunc = func(ctx context.Context, roleId string, userId string) (*client.RoleResponse, *v2.RateLimitDescription, error) {
+			assert.Equal(t, "test-role", roleId)
+			assert.Equal(t, "test-user", userId)
+			return nil, nil, nil
+		}
+
+		// Create a grant request.
+		principal := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: userResourceType.Id,
+				Resource:     "test-user",
+			},
+		}
+
+		entitlement := &v2.Entitlement{
+			Resource: &v2.Resource{
+				Id: &v2.ResourceId{
+					Resource: "test-role",
+				},
+			},
+		}
+
+		// Execute Grant.
+		_, err := roleBuilder.Grant(ctx, principal, entitlement)
+
+		// Verify the result.
+		require.NoError(t, err)
+	})
+
+	t.Run("Grant operation for role with invalid principal", func(t *testing.T) {
+		roleBuilder, _ := newTestRoleBuilder()
+
+		principal := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: "invalid-type",
+				Resource:     "test-user",
+			},
+		}
+
+		entitlement := &v2.Entitlement{
+			Resource: &v2.Resource{
+				Id: &v2.ResourceId{
+					Resource: "test-role",
+				},
+			},
+		}
+
+		// Execute Grant.
+		_, err := roleBuilder.Grant(ctx, principal, entitlement)
+
+		// Verify the error.
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "baton-sumo-logic: only users can be assigned to a role")
+	})
+
+	t.Run("Revoke operation for role with valid principal and entitlement", func(t *testing.T) {
+		roleBuilder, mockService := newTestRoleBuilder()
+		// Mock the remove user from role call.
+		mockService.RemoveRoleFromUserFunc = func(ctx context.Context, roleId string, userId string) (*client.RoleResponse, *v2.RateLimitDescription, error) {
+			assert.Equal(t, "test-role", roleId)
+			assert.Equal(t, "test-user", userId)
+			return nil, nil, nil
+		}
+
+		principal := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: userResourceType.Id,
+				Resource:     "test-user",
+			},
+		}
+
+		entitlement := &v2.Entitlement{
+			Resource: &v2.Resource{
+				Id: &v2.ResourceId{
+					Resource: "test-role",
+				},
+			},
+		}
+
+		grant := &v2.Grant{
+			Principal:   principal,
+			Entitlement: entitlement,
+		}
+
+		// Execute Revoke.
+		_, err := roleBuilder.Revoke(ctx, grant)
+
+		// Verify the result.
+		require.NoError(t, err)
+	})
+
+	t.Run("Revoke operation for role with invalid principal", func(t *testing.T) {
+		roleBuilder, _ := newTestRoleBuilder()
+
+		principal := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: "invalid-type",
+				Resource:     "test-user",
+			},
+		}
+
+		entitlement := &v2.Entitlement{
+			Resource: &v2.Resource{
+				Id: &v2.ResourceId{
+					Resource: "test-role",
+				},
+			},
+		}
+
+		grant := &v2.Grant{
+			Principal:   principal,
+			Entitlement: entitlement,
+		}
+
+		// Execute Revoke.
+		_, err := roleBuilder.Revoke(ctx, grant)
+
+		// Verify the error.
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "baton-sumo-logic: only users can be revoked from a role")
 	})
 }

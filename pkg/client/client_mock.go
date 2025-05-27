@@ -30,3 +30,11 @@ func (m *MockClientService) GetRoles(ctx context.Context, pageToken *string) ([]
 func (m *MockClientService) GetRole(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error) {
 	return m.GetRoleFunc(ctx, roleId)
 }
+
+func (m *MockClientService) AssignRoleToUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	return m.AssignRoleToUserFunc(ctx, roleId, userId)
+}
+
+func (m *MockClientService) RemoveRoleFromUser(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	return m.RemoveRoleFromUserFunc(ctx, roleId, userId)
+}
