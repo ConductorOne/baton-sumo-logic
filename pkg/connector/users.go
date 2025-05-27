@@ -144,7 +144,6 @@ func createUserResource(account interface{}) (*v2.Resource, error) {
 	case *client.ServiceAccountResponse:
 		fullName = a.Name
 		profile["full_name"] = fullName
-
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_SERVICE))
 
 	default:
