@@ -61,10 +61,10 @@ jobs:
       CONNECTOR_CMD: ${CONNECTOR_NAME} ${CONNECTOR_FLAGS}
       # The following parameters are passed to grant/revoke commands
       # Change these to the correct IDs for your test data
-      CONNECTOR_GRANT: 'grant:entitlement:group:1234:member:user:9876'
-      CONNECTOR_ENTITLEMENT: 'entitlement:group:1234:member'
-      CONNECTOR_PRINCIPAL: 'user:9876'
+      CONNECTOR_ENTITLEMENT: 'role:0000000000C060EA:assigned'
+      CONNECTOR_PRINCIPAL: '0000000000C39F85'
       CONNECTOR_PRINCIPAL_TYPE: 'user'
+      CONNECTOR_GRANT: '${CONNECTOR_ENTITLEMENT}:${CONNECTOR_PRINCIPAL_TYPE}:${CONNECTOR_PRINCIPAL}'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -72,18 +72,29 @@ jobs:
           go-version: 1.24.x
       - name: Checkout code
         uses: actions/checkout@v4
-      # Install any dependencies here (or delete this)
-      # - name: Install postgres client
-      #   run: sudo apt install postgresql-client
-      # Run any fixture setup here (or delete this)
-      # - name: Import sql into postgres
-      #   run: psql -h localhost --user postgres -f environment.sql
-      #   env:
-      #     PGPASSWORD: secretpassword
-      - name: Build ${{ env.CONNECTOR_NAME }}
-        run: go build ./cmd/${{ env.CONNECTOR_NAME }}
-      - name: Run ${{ env.CONNECTOR_NAME }}
-        run: ./${{ env.CONNECTOR_CMD }}
-
+      # Install baton
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
+      # Build connector
+      - name: Build ${{ env.CONNECTOR_NAME }}
+        run: go build ./cmd/${{ env.CONNECTOR_NAME }}
+      # Run connector (sync data)
+      - name: Run ${{ env.CONNECTOR_NAME }}
+        run: ./${{ env.CONNECTOR_CMD }}
+      # Grant and revoke tests
+      - name: Check for grant before revoking
+        run: baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status '(.grants // []) | [.[].grant.principal.id.resource] | any(. == "'${{ env.CONNECTOR_PRINCIPAL }}'")'
+
+      - name: Revoke grants
+        run: ./${{ env.CONNECTOR_CMD }} --revoke-grant="${{ env.CONNECTOR_GRANT }}"
+
+      - name: Check grant was revoked
+        run: ./${{ env.CONNECTOR_CMD }} && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq -r '(.grants | length == 0) or ([ .grants[].grant.principal.id.resource ] | all(. != "'${{ env.CONNECTOR_PRINCIPAL }}'"))'
+
+      - name: Grant entitlement
+        run: ./${{ env.CONNECTOR_CMD }} --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
+
+      - name: Check grant was re-granted
+        run: ./${{ env.CONNECTOR_CMD }} &&
+          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status '(.grants // []) | [.[].grant.principal.id.resource] | any(. == "'${{ env.CONNECTOR_PRINCIPAL }}'")'
+
