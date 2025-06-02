@@ -82,3 +82,10 @@ type RoleResponse struct {
 	// If a role is defined by the system, it cannot be deleted or modified.
 	SystemDefined *bool `json:"systemDefined,omitempty"`
 }
+
+type UserRequest struct {
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email"`
+	RoleIDs   []string `json:"roleIds"`
+}

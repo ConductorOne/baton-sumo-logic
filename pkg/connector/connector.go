@@ -34,6 +34,50 @@ func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error)
 	return &v2.ConnectorMetadata{
 		DisplayName: "Sumo Logic Connector",
 		Description: "Sumo Logic Connector is a connector for Sumo Logic that allows you to manage users and roles in Sumo Logic.",
+		AccountCreationSchema: &v2.ConnectorAccountCreationSchema{
+			FieldMap: map[string]*v2.ConnectorAccountCreationSchema_Field{
+				"first_name": {
+					DisplayName: "First Name",
+					Required:    true,
+					Description: "First name of the user.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "First Name",
+					Order:       1,
+				},
+				"last_name": {
+					DisplayName: "Last Name",
+					Required:    true,
+					Description: "Last name of the user.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "Last Name",
+					Order:       2,
+				},
+				"email": {
+					DisplayName: "Email",
+					Required:    true,
+					Description: "Email address of the user.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "email@example.com",
+					Order:       3,
+				},
+				"default_role_id": {
+					DisplayName: "Default Role ID",
+					Required:    true,
+					Description: "The default role ID to be associated with the user.",
+					Field: &v2.ConnectorAccountCreationSchema_Field_StringField{
+						StringField: &v2.ConnectorAccountCreationSchema_StringField{},
+					},
+					Placeholder: "RoleID",
+					Order:       4,
+				},
+			},
+		},
 	}, nil
 }
 

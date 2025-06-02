@@ -187,10 +187,10 @@ func TestRoleGrantAndRevoke(t *testing.T) {
 	t.Run("Revoke operation for role with valid principal and entitlement", func(t *testing.T) {
 		roleBuilder, mockService := newTestRoleBuilder()
 		// Mock the remove user from role call.
-		mockService.RemoveRoleFromUserFunc = func(ctx context.Context, roleId string, userId string) (*client.RoleResponse, *v2.RateLimitDescription, error) {
+		mockService.RemoveRoleFromUserFunc = func(ctx context.Context, roleId string, userId string) (*v2.RateLimitDescription, error) {
 			assert.Equal(t, "test-role", roleId)
 			assert.Equal(t, "test-user", userId)
-			return nil, nil, nil
+			return nil, nil
 		}
 
 		principal := &v2.Resource{

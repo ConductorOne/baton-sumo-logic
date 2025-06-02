@@ -143,7 +143,7 @@ func (o *roleBuilder) Revoke(
 
 	outputAnnotations := annotations.New()
 
-	_, rateLimitData, err := o.service.RemoveRoleFromUser(
+	rateLimitData, err := o.service.RemoveRoleFromUser(
 		ctx,
 		grant.Entitlement.Resource.Id.Resource,
 		grant.Principal.Id.Resource,
