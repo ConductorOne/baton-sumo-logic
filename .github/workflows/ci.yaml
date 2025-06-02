@@ -65,6 +65,13 @@ jobs:
       CONNECTOR_PRINCIPAL: '0000000000C39F85'
       CONNECTOR_PRINCIPAL_TYPE: 'user'
       CONNECTOR_GRANT: '${CONNECTOR_ENTITLEMENT}:${CONNECTOR_PRINCIPAL_TYPE}:${CONNECTOR_PRINCIPAL}'
+      # Account parameters
+      # This is the display name of the account and we use it to check if the account was created.
+      ACCOUNT_DISPLAYNAME: 'first-name-test last-name-test'
+      # Create account flags.
+      CREATE_ACCOUNT_FLAGS: >-
+        --create-account-email="test@test.com"
+        --create-account-profile='{"email":"test@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D04"}'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -79,7 +86,7 @@ jobs:
       - name: Build ${{ env.CONNECTOR_NAME }}
         run: go build ./cmd/${{ env.CONNECTOR_NAME }}
       # Run connector (sync data)
-      - name: Run ${{ env.CONNECTOR_NAME }}
+      - name: Run connector
         run: ./${{ env.CONNECTOR_CMD }}
       # Grant and revoke tests
       - name: Check for grant before revoking
@@ -98,3 +105,21 @@ jobs:
         run: ./${{ env.CONNECTOR_CMD }} &&
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status '(.grants // []) | [.[].grant.principal.id.resource] | any(. == "'${{ env.CONNECTOR_PRINCIPAL }}'")'
 
+      - name: Create account
+        run: ./${{ env.CONNECTOR_CMD }} ${{ env.CREATE_ACCOUNT_FLAGS }}
+
+      - name: Check account was created
+        id: check_account
+        run: |
+          ./${{ env.CONNECTOR_CMD }}
+          CREATED_ACCOUNT_ID=$(baton principals --output-format=json | jq -r --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources[] | select(.resource.displayName == $name) | .resource.id.resource')
+          echo "account_id=$CREATED_ACCOUNT_ID" >> $GITHUB_OUTPUT
+          [ -n "$CREATED_ACCOUNT_ID" ]
+
+      - name: Delete account
+        run: ./${{ env.CONNECTOR_CMD }} --delete-resource "${{ steps.check_account.outputs.account_id }}" --delete-resource-type "user"
+
+      - name: Check account was deleted
+        run: ./${{ env.CONNECTOR_CMD }} && baton principals --output-format=json | jq -e --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources | map(select(.resource.displayName == $name)) | length == 0'
+
+ 
