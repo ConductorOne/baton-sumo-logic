@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"time"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -36,8 +37,7 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 
 		// Process service accounts
 		for _, serviceAccount := range serviceAccounts {
-			serviceAccountCopy := serviceAccount
-			userResource, err := createUserResource(&serviceAccountCopy)
+			userResource, err := createUserResource(serviceAccount)
 			if err != nil {
 				return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from service account: %w", err)
 			}
@@ -54,8 +54,7 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 
 	// Process human accounts
 	for _, humanAccount := range humanAccounts {
-		humanAccountCopy := humanAccount
-		userResource, err := createUserResource(&humanAccountCopy)
+		userResource, err := createUserResource(humanAccount)
 		if err != nil {
 			return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from human account: %w", err)
 		}
@@ -98,19 +97,22 @@ func createUserResource(account interface{}) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"id":          base.ID,
 		"email":       base.Email,
-		"created_at":  base.CreatedAt,
+		"created_at":  base.CreatedAt.Format(time.RFC3339),
 		"created_by":  base.CreatedBy,
+		"modified_at": base.ModifiedAt.Format(time.RFC3339),
 		"modified_by": base.ModifiedBy,
-		"modified_at": base.ModifiedAt,
 	}
 
-	userTraitOptions := []rs.UserTraitOption{}
+	// Initialize base user trait options with common fields (email, login, and creation time).
+	userTraitOptions := []rs.UserTraitOption{
+		rs.WithUserLogin(base.Email),
+		rs.WithEmail(base.Email, true),
+		rs.WithCreatedAt(base.CreatedAt),
+	}
 
-	// Handle active status
+	// default baton-sdk is enabled, so we only need to set disabled if the account is disabled.
 	if base.IsActive == nil || !*base.IsActive {
 		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_DISABLED))
-	} else {
-		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_ENABLED))
 	}
 
 	// Handle specific account types
@@ -119,26 +121,40 @@ func createUserResource(account interface{}) (*v2.Resource, error) {
 		fullName = a.FirstName + " " + a.LastName
 		profile["full_name"] = fullName
 
-		// Add optional human user fields
-		if a.IsLocked != nil && *a.IsLocked {
+		// This has the value true if the user's account has been locked.
+		// If a user tries to log into their account several times and fails, his or her account will be locked for security reasons.
+		if a.IsLocked != nil {
 			profile["is_locked"] = *a.IsLocked
 		}
+
+		// True if multi factor authentication is enabled for the user.
 		if a.IsMfaEnabled != nil {
-			profile["mfa_enabled"] = *a.IsMfaEnabled
+			userTraitOptions = append(userTraitOptions, rs.WithMFAStatus(&v2.UserTrait_MFAStatus{
+				MfaEnabled: *a.IsMfaEnabled,
+			}))
 		}
+
+		// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
 		if a.LastLoginTimestamp != nil {
-			profile["last_login"] = *a.LastLoginTimestamp
+			userTraitOptions = append(userTraitOptions, rs.WithLastLogin(*a.LastLoginTimestamp))
 		}
+
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_HUMAN))
 
 	case *client.ServiceAccountResponse:
 		fullName = a.Name
 		profile["full_name"] = fullName
+
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_SERVICE))
 
 	default:
 		return nil, fmt.Errorf("unsupported account type: %T", account)
 	}
+
+	// The profile is assigned last because it needs to be built up with account-specific fields
+	// that are only known after determining whether this is a human or service account.
+	// This includes fields like full_name, is_locked, account_type, and other type-specific attributes.
+	userTraitOptions = append(userTraitOptions, rs.WithUserProfile(profile))
 
 	// Create the resource
 	return rs.NewUserResource(

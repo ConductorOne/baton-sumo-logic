@@ -35,8 +35,7 @@ func (o *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 	resources := make([]*v2.Resource, 0, len(roles))
 	for _, role := range roles {
-		roleCopy := role
-		roleResource, err := createRoleResource(&roleCopy)
+		roleResource, err := createRoleResource(role)
 		if err != nil {
 			return nil, "", outputAnnotations, fmt.Errorf("failed to create role resource: %w", err)
 		}
@@ -46,7 +45,6 @@ func (o *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	return resources, createPageToken(nextPageToken), outputAnnotations, nil
 }
 
-// Entitlements always returns an empty slice for roles.
 func (o *roleBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
 	var rv []*v2.Entitlement
 

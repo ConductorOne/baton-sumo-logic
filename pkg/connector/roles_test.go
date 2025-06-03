@@ -8,6 +8,7 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	test "github.com/conductorone/baton-sdk/pkg/test"
 	"github.com/conductorone/baton-sumo-logic/pkg/client"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -36,7 +37,7 @@ func TestRolesList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.RoleResponse,
+			[]*client.RoleResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -73,7 +74,7 @@ func TestRolesList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.RoleResponse,
+			[]*client.RoleResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -93,13 +94,13 @@ func TestRolesList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.RoleResponse,
+			[]*client.RoleResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
 		) {
 			description := "Test Role"
-			roles := []client.RoleResponse{
+			roles := []*client.RoleResponse{
 				{
 					ID:          "1",
 					Name:        "baton-role",
@@ -117,7 +118,7 @@ func TestRolesList(t *testing.T) {
 		require.NotEmpty(t, resources[0].Id)
 
 		require.NotNil(t, token)
-		AssertNoRatelimitAnnotations(t, annotations)
+		test.AssertNoRatelimitAnnotations(t, annotations)
 		require.Nil(t, err)
 	})
 }

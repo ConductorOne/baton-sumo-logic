@@ -1,6 +1,9 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type ErrorResponse struct {
 	Code   string  `json:"code"`
@@ -19,7 +22,7 @@ func (e *ErrorResponse) Message() string {
 
 type ApiResponse[T any] struct {
 	// Data is the list of items returned by the API.
-	Data []T `json:"data"`
+	Data []*T `json:"data"`
 	// Next is the token to get the next page of results.
 	Next *string `json:"next,omitempty"`
 }
@@ -29,11 +32,11 @@ type BaseAccount struct {
 	Email string `json:"email"`
 	// Creation timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
 	// https://datatracker.ietf.org/doc/html/rfc3339 .
-	CreatedAt string `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 	// Identifier of the user who created the resource.
 	CreatedBy string `json:"createdBy"`
 	// Last modification timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
-	ModifiedAt string `json:"modifiedAt"`
+	ModifiedAt time.Time `json:"modifiedAt"`
 	// Identifier of the user who last modified the resource.
 	ModifiedBy string   `json:"modifiedBy"`
 	RoleIDs    []string `json:"roleIds"`
@@ -50,7 +53,7 @@ type UserResponse struct {
 	// True if multi factor authentication is enabled for the user.
 	IsMfaEnabled *bool `json:"isMfaEnabled,omitempty"`
 	// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
-	LastLoginTimestamp *string `json:"lastLoginTimestamp,omitempty"`
+	LastLoginTimestamp *time.Time `json:"lastLoginTimestamp,omitempty"`
 }
 
 type ServiceAccountResponse struct {

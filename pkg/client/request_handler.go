@@ -26,7 +26,6 @@ func (c *Client) get(
 		http.MethodGet,
 		url,
 		target,
-		withBasicAuth(c.base64Credentials),
 	)
 }
 

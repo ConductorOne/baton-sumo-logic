@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -16,40 +15,47 @@ const (
 )
 
 type Client struct {
-	httpClient        *uhttp.BaseHttpClient
-	apiBaseURL        *url.URL
-	base64Credentials string
+	httpClient *uhttp.BaseHttpClient
+	apiBaseURL *url.URL
 }
 
 func NewClient(ctx context.Context, apiBaseURL, apiAccessID, apiAccessKey string) (*Client, error) {
-	httpClient, err := uhttp.NewBaseHttpClientWithContext(ctx, http.DefaultClient)
-	if err != nil {
-		return nil, fmt.Errorf("error creating http client: %w", err)
-	}
-
 	// Create API base URL
 	url, err := url.Parse(apiBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing API base URL: %w", err)
 	}
 
+	// Create a basic auth client with proper options
+	httpClient, err := uhttp.NewBasicAuth(apiAccessID, apiAccessKey).GetClient(ctx,
+		uhttp.WithUserAgent("baton-sumo-logic"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error creating http client: %w", err)
+	}
+
+	// Create the base HTTP client with the authenticated client
+	baseClient, err := uhttp.NewBaseHttpClientWithContext(ctx, httpClient)
+	if err != nil {
+		return nil, fmt.Errorf("error creating base http client: %w", err)
+	}
+
 	return &Client{
-		httpClient:        httpClient,
-		apiBaseURL:        url,
-		base64Credentials: encodeBase64(apiAccessID, apiAccessKey),
+		httpClient: baseClient,
+		apiBaseURL: url,
 	}, nil
 }
 
 // GetUsers retrieves users from the API.
 func (c *Client) getUsers(ctx context.Context, pageToken *string) (
-	[]UserResponse,
+	[]*UserResponse,
 	*string,
 	*v2.RateLimitDescription,
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/listUsers
-	path := "/api/{api-version}/users"
-	pathParameters := map[string]string{"api-version": apiVersion}
+	path := "/api/{{.apiVersion}}/users"
+	pathParameters := map[string]string{"apiVersion": apiVersion}
 
 	var response ApiResponse[UserResponse]
 
@@ -69,13 +75,13 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string) (
 
 // GetServiceAccounts retrieves service accounts from the API.
 func (c *Client) getServiceAccounts(ctx context.Context) (
-	[]ServiceAccountResponse,
+	[]*ServiceAccountResponse,
 	*v2.RateLimitDescription,
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/listServiceAccounts
-	path := "/api/{api-version}/serviceAccounts"
-	pathParameters := map[string]string{"api-version": apiVersion}
+	path := "/api/{{.apiVersion}}/serviceAccounts"
+	pathParameters := map[string]string{"apiVersion": apiVersion}
 
 	var response ApiResponse[ServiceAccountResponse]
 
@@ -94,14 +100,14 @@ func (c *Client) getServiceAccounts(ctx context.Context) (
 
 // GetRoles retrieves roles from the API.
 func (c *Client) getRoles(ctx context.Context, pageToken *string) (
-	[]RoleResponse,
+	[]*RoleResponse,
 	*string,
 	*v2.RateLimitDescription,
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/listRoles
-	path := "/api/{api-version}/roles"
-	pathParameters := map[string]string{"api-version": apiVersion}
+	path := "/api/{{.apiVersion}}/roles"
+	pathParameters := map[string]string{"apiVersion": apiVersion}
 
 	var response ApiResponse[RoleResponse]
 
@@ -126,8 +132,8 @@ func (c *Client) getRole(ctx context.Context, roleId string) (
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/listRoles
-	path := "/api/{api-version}/roles/{role-id}"
-	pathParameters := map[string]string{"api-version": apiVersion, "role-id": roleId}
+	path := "/api/{{.apiVersion}}/roles/{{.roleID}}"
+	pathParameters := map[string]string{"apiVersion": apiVersion, "roleID": roleId}
 
 	var response RoleResponse
 

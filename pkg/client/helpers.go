@@ -1,37 +1,38 @@
 package client
 
 import (
-	"encoding/base64"
 	"fmt"
+	"html/template"
 	"net/url"
 	"strings"
-
-	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
-
-func encodeBase64(apiAccessID, apiAccessKey string) string {
-	return base64.StdEncoding.EncodeToString([]byte(apiAccessID + ":" + apiAccessKey))
-}
-
-func withBasicAuth(basicAuthCredentials string) uhttp.RequestOption {
-	return uhttp.WithHeader("Authorization", "Basic "+basicAuthCredentials)
-}
 
 // constructURL builds the full URL for an API request.
 func (c *Client) constructURL(path string, pathParams map[string]string, queryParams map[string]string, pageToken *string, pageSize *uint) (*url.URL, error) {
 	// Start with the base URL
 	u := *c.apiBaseURL
 
-	// Add the path
+	// Add the path parameters
 	if path != "" {
-		// Replace path parameters
-		for k, v := range pathParams {
-			path = strings.ReplaceAll(path, "{"+k+"}", url.PathEscape(v))
+		// Create a template for path parameter replacement
+		tmpl, err := template.New("path").Parse(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse path template: %w", err)
 		}
-		u.Path += path
+
+		// Create a buffer to hold the result
+		var buf strings.Builder
+
+		// Execute the template with path parameters
+		if err := tmpl.Execute(&buf, pathParams); err != nil {
+			return nil, fmt.Errorf("failed to execute path template: %w", err)
+		}
+
+		// Use the processed path
+		u.Path += buf.String()
 	}
 
-	// Add query parameters
+	// Add pagination query parameters
 	q := u.Query()
 	// Add token and limit parameters if provided
 	if pageToken != nil {

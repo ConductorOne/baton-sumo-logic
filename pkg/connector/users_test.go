@@ -8,6 +8,7 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	test "github.com/conductorone/baton-sdk/pkg/test"
 	"github.com/conductorone/baton-sumo-logic/pkg/client"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -36,7 +37,7 @@ func TestUsersList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.UserResponse,
+			[]*client.UserResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -71,7 +72,7 @@ func TestUsersList(t *testing.T) {
 		mockClientService.GetServiceAccountsFunc = func(
 			ctx context.Context,
 		) (
-			[]client.ServiceAccountResponse,
+			[]*client.ServiceAccountResponse,
 			*v2.RateLimitDescription,
 			error,
 		) {
@@ -107,7 +108,7 @@ func TestUsersList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.UserResponse,
+			[]*client.UserResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -127,20 +128,35 @@ func TestUsersList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.UserResponse,
+			[]*client.UserResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
 		) {
 			email := "marcos@conductorone.com"
-			users := []client.UserResponse{
+			isActive := true
+			isMfaEnabled := false
+			isLocked := false
+			lastLoginTimestamp := time.Now()
+			createdAt := time.Now()
+			modifiedAt := time.Now()
+			users := []*client.UserResponse{
 				{
 					BaseAccount: client.BaseAccount{
-						ID:    "1",
-						Email: email,
+						ID:         "1",
+						Email:      email,
+						IsActive:   &isActive,
+						CreatedAt:  createdAt,
+						CreatedBy:  "test",
+						ModifiedBy: "test",
+						ModifiedAt: modifiedAt,
+						RoleIDs:    []string{"1", "2"},
 					},
-					FirstName: "Marcos",
-					LastName:  "Garcia",
+					FirstName:          "Marcos",
+					LastName:           "Garcia",
+					IsMfaEnabled:       &isMfaEnabled,
+					IsLocked:           &isLocked,
+					LastLoginTimestamp: &lastLoginTimestamp,
 				},
 			}
 			return users, nil, nil, nil
@@ -154,7 +170,7 @@ func TestUsersList(t *testing.T) {
 		require.NotEmpty(t, resources[0].Id)
 
 		require.NotNil(t, token)
-		AssertNoRatelimitAnnotations(t, annotations)
+		test.AssertNoRatelimitAnnotations(t, annotations)
 		require.Nil(t, err)
 	})
 
@@ -166,16 +182,24 @@ func TestUsersList(t *testing.T) {
 		mockClientService.GetServiceAccountsFunc = func(
 			ctx context.Context,
 		) (
-			[]client.ServiceAccountResponse,
+			[]*client.ServiceAccountResponse,
 			*v2.RateLimitDescription,
 			error,
 		) {
 			email := "baton-service-account@conductorone.com"
-			serviceAccounts := []client.ServiceAccountResponse{
+			isActive := true
+			createdAt := time.Now()
+			modifiedAt := time.Now()
+			serviceAccounts := []*client.ServiceAccountResponse{
 				{
 					BaseAccount: client.BaseAccount{
-						ID:    "1",
-						Email: email,
+						ID:         "1",
+						Email:      email,
+						IsActive:   &isActive,
+						CreatedAt:  createdAt,
+						CreatedBy:  "test",
+						ModifiedBy: "test",
+						ModifiedAt: modifiedAt,
 					},
 					Name: "baton-service-account",
 				},
@@ -188,13 +212,13 @@ func TestUsersList(t *testing.T) {
 			ctx context.Context,
 			pageToken *string,
 		) (
-			[]client.UserResponse,
+			[]*client.UserResponse,
 			*string,
 			*v2.RateLimitDescription,
 			error,
 		) {
 			email := "baton-user@conductorone.com"
-			users := []client.UserResponse{
+			users := []*client.UserResponse{
 				{
 					BaseAccount: client.BaseAccount{
 						ID:    "2",
@@ -216,7 +240,7 @@ func TestUsersList(t *testing.T) {
 		require.NotEmpty(t, resources[1].Id)
 
 		require.NotNil(t, token)
-		AssertNoRatelimitAnnotations(t, annotations)
+		test.AssertNoRatelimitAnnotations(t, annotations)
 		require.Nil(t, err)
 	})
 }
