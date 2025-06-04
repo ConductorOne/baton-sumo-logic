@@ -150,7 +150,6 @@ func (c *Client) getRole(ctx context.Context, roleId string) (
 	return &response, rateLimit, nil
 }
 
-// AssignRoleToUser assigns a role to a user.
 func (c *Client) assignRoleToUser(ctx context.Context, roleId string, userId string) (
 	*RoleResponse,
 	*v2.RateLimitDescription,
@@ -175,7 +174,6 @@ func (c *Client) assignRoleToUser(ctx context.Context, roleId string, userId str
 	return &response, rateLimit, nil
 }
 
-// RemoveRoleFromUser removes a role from a user.
 func (c *Client) removeRoleFromUser(ctx context.Context, roleId string, userId string) (
 	*RoleResponse,
 	*v2.RateLimitDescription,

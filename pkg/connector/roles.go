@@ -96,7 +96,7 @@ func (o *roleBuilder) Grant(
 	logger := ctxzap.Extract(ctx)
 
 	if principal.Id.ResourceType != userResourceType.Id {
-		logger.Warn(
+		logger.Error(
 			"baton-sumo-logic: only users can be assigned to a role",
 			zap.String("principal_type", principal.Id.ResourceType),
 			zap.String("principal_id", principal.Id.Resource),
@@ -131,7 +131,7 @@ func (o *roleBuilder) Revoke(
 	logger := ctxzap.Extract(ctx)
 
 	if grant.Principal.Id.ResourceType != userResourceType.Id {
-		logger.Warn(
+		logger.Error(
 			"baton-sumo-logic: only users can be assigned to a role",
 			zap.String("principal_type", grant.Principal.Id.ResourceType),
 			zap.String("principal_id", grant.Principal.Id.Resource),
