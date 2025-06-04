@@ -58,11 +58,19 @@ baton-sumo-logic
 baton resources
 ```
 
-## Data Model
+## Data Model and Capabilities
 
-`baton-sumo-logic` will pull down information about the following resources:
-- Users
+`baton-sumo-logic` provides the following capabilities:
+
+### Resource Sync
+- Users (both human accounts and service accounts)
 - Roles
+
+### Provisioning Capabilities
+- User account management (create and delete)
+- Role assignments (grant and revoke role memberships)
+
+Note: Service account syncing can be optionally disabled using the `include-service-accounts` configuration parameter.
 
 ## Contributing, Support, and Issues
 
@@ -110,6 +118,7 @@ Use "baton-sumo-logic [command] --help" for more information about a command.
 - Ensure the user creating the access key has the "Create Access Keys" and "Manage Access Keys" role capabilities, and possesses sufficient permissions matching the intended use of the key, such as "Manage Users and Roles" or an Administrator role.
 - Access keys cannot exceed the permissions of their creator.
 - Copy the Access ID and Access Key immediately after creation, as they are displayed only once.
+- The "Manage Users and Roles" permission is required for both operations: sync (read-only) and provisioning (read-write). This single permission grants access to both functionalities.
 
 ## Additional Resources
 
