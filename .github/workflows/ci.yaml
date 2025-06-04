@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run linters
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           args: --timeout=3m
@@ -49,9 +49,16 @@ jobs:
     #       POSTGRES_PASSWORD: secretpassword
     env:
       BATON_LOG_LEVEL: debug
-      # Add any environment variables needed to run baton-sumo-logic
-      # BATON_BASE_URL: 'http://localhost:8080'
-      # BATON_ACCESS_TOKEN: 'secret_token'
+      # Add any environment variables needed to run connector.
+      CONNECTOR_NAME: baton-sumo-logic
+      # Flags and command.
+      CONNECTOR_FLAGS: >-
+        --api-base-url https://api.sumologic.com
+        --api-access-id ${{ secrets.CONNECTOR_CLIENT_ID }}
+        --api-access-key ${{ secrets.CONNECTOR_CLIENT_SECRET }}
+        --include-service-accounts
+      # Connector command.
+      CONNECTOR_CMD: ${CONNECTOR_NAME} ${CONNECTOR_FLAGS}
       # The following parameters are passed to grant/revoke commands
       # Change these to the correct IDs for your test data
       CONNECTOR_GRANT: 'grant:entitlement:group:1234:member:user:9876'
@@ -62,7 +69,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.x
+          go-version: 1.24.x
       - name: Checkout code
         uses: actions/checkout@v4
       # Install any dependencies here (or delete this)
@@ -73,32 +80,10 @@ jobs:
       #   run: psql -h localhost --user postgres -f environment.sql
       #   env:
       #     PGPASSWORD: secretpassword
-      - name: Build baton-sumo-logic
-        run: go build ./cmd/baton-sumo-logic
-      - name: Run baton-sumo-logic
-        run: ./baton-sumo-logic
+      - name: Build ${{ env.CONNECTOR_NAME }}
+        run: go build ./cmd/${{ env.CONNECTOR_NAME }}
+      - name: Run ${{ env.CONNECTOR_NAME }}
+        run: ./${{ env.CONNECTOR_CMD }}
 
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
-
-      - name: Check for grant before revoking
-
-        run:
-          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
-
-
-      - name: Revoke grants
-        run: ./baton-sumo-logic --revoke-grant="${{ env.CONNECTOR_GRANT }}"
-
-      - name: Check grant was revoked
-        run: ./baton-sumo-logic && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end"
-
-      - name: Grant entitlement
-        # Change the grant arguments to the correct IDs for your test data
-        run: ./baton-sumo-logic --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
-
-      - name: Check grant was re-granted
-
-        run:
-          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\""
-

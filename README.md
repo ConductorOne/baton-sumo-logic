@@ -8,38 +8,63 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more the proje
 
 # Getting Started
 
-## brew
+## Configuration
 
+This connector requires the following configuration:
+
+- `api-base-url`: The Sumo Logic API base URL (default: "https://api.sumologic.com")
+- `api-access-id`: The Sumo Logic API access ID
+- `api-access-key`: The Sumo Logic API access key
+- `include-service-accounts`: Whether to include service accounts (default: true)
+
+You can provide these values as environment variables:
+
+```bash
+export BATON_API_BASE_URL=https://api.sumologic.com
+export BATON_API_ACCESS_ID=your-access-id
+export BATON_API_ACCESS_KEY=your-access-key
+export BATON_INCLUDE_SERVICE_ACCOUNTS=true
 ```
+
+## Installation Options
+
+### Homebrew
+
+```bash
 brew install conductorone/baton/baton conductorone/baton/baton-sumo-logic
 baton-sumo-logic
 baton resources
 ```
 
-## docker
+### Docker
 
-```
-docker run --rm -v $(pwd):/out -e BATON_DOMAIN_URL=domain_url -e BATON_API_KEY=apiKey -e BATON_USERNAME=username ghcr.io/conductorone/baton-sumo-logic:latest -f "/out/sync.c1z"
+```bash
+docker run --rm -v $(pwd):/out \
+  -e BATON_API_BASE_URL=https://api.sumologic.com \
+  -e BATON_API_ACCESS_ID=your-access-id \
+  -e BATON_API_ACCESS_KEY=your-access-key \
+  ghcr.io/conductorone/baton-sumo-logic:latest -f "/out/sync.c1z"
+
 docker run --rm -v $(pwd):/out ghcr.io/conductorone/baton:latest -f "/out/sync.c1z" resources
 ```
 
-## source
+### From Source
 
-```
+```bash
 go install github.com/conductorone/baton/cmd/baton@main
 go install github.com/conductorone/baton-sumo-logic/cmd/baton-sumo-logic@main
 
 baton-sumo-logic
-
 baton resources
 ```
 
-# Data Model
+## Data Model
 
 `baton-sumo-logic` will pull down information about the following resources:
 - Users
+- Roles
 
-# Contributing, Support and Issues
+## Contributing, Support, and Issues
 
 We started Baton because we were tired of taking screenshots and manually
 building spreadsheets. We welcome contributions, and ideas, no matter how
@@ -48,9 +73,9 @@ everyone. If you have questions, problems, or ideas: Please open a GitHub Issue!
 
 See [CONTRIBUTING.md](https://github.com/ConductorOne/baton/blob/main/CONTRIBUTING.md) for more details.
 
-# `baton-sumo-logic` Command Line Usage
+## `baton-sumo-logic` Command Line Usage
 
-```
+```bash
 baton-sumo-logic
 
 Usage:
@@ -63,6 +88,10 @@ Available Commands:
   help               Help about any command
 
 Flags:
+      --api-base-url string          The Sumo Logic API base URL ($BATON_API_BASE_URL) (default "https://api.sumologic.com")
+      --api-access-id string         The Sumo Logic API access ID ($BATON_API_ACCESS_ID)
+      --api-access-key string        The Sumo Logic API access key ($BATON_API_ACCESS_KEY)
+      --include-service-accounts     Whether to include service accounts ($BATON_INCLUDE_SERVICE_ACCOUNTS) (default true)
       --client-id string             The client ID used to authenticate with ConductorOne ($BATON_CLIENT_ID)
       --client-secret string         The client secret used to authenticate with ConductorOne ($BATON_CLIENT_SECRET)
   -f, --file string                  The path to the c1z file to sync with ($BATON_FILE) (default "sync.c1z")
@@ -75,3 +104,15 @@ Flags:
 
 Use "baton-sumo-logic [command] --help" for more information about a command.
 ```
+
+## Important Notes
+
+- Ensure the user creating the access key has the "Create Access Keys" and "Manage Access Keys" role capabilities, and possesses sufficient permissions matching the intended use of the key, such as "Manage Users and Roles" or an Administrator role.
+- Access keys cannot exceed the permissions of their creator.
+- Copy the Access ID and Access Key immediately after creation, as they are displayed only once.
+
+## Additional Resources
+
+- [Sumo Logic Access Keys Documentation](https://help.sumologic.com/docs/manage/security/access-keys/)
+- [API Authentication and Endpoints](https://help.sumologic.com/docs/api/getting-started/)
+
