@@ -175,7 +175,6 @@ func (c *Client) assignRoleToUser(ctx context.Context, roleId string, userId str
 }
 
 func (c *Client) removeRoleFromUser(ctx context.Context, roleId string, userId string) (
-	*RoleResponse,
 	*v2.RateLimitDescription,
 	error,
 ) {
@@ -183,17 +182,89 @@ func (c *Client) removeRoleFromUser(ctx context.Context, roleId string, userId s
 	path := "/api/{{.apiVersion}}/roles/{{.roleID}}/users/{{.userID}}"
 	pathParameters := map[string]string{"apiVersion": apiVersion, "roleID": roleId, "userID": userId}
 
-	var response RoleResponse
-
 	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error generating remove role from user URL: %w", err)
+		return nil, fmt.Errorf("error generating remove role from user URL: %w", err)
 	}
 
 	rateLimit, err := c.delete(ctx, url, nil)
+	if err != nil {
+		return rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return rateLimit, nil
+}
+
+func (c *Client) getUserByID(ctx context.Context, userId string) (
+	*UserResponse,
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/getUser
+	path := "/api/{{.apiVersion}}/users/{{.userID}}"
+	pathParameters := map[string]string{"apiVersion": apiVersion, "userID": userId}
+
+	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating get user by ID URL: %w", err)
+	}
+
+	var response UserResponse
+	rateLimit, err := c.get(ctx, url, &response)
 	if err != nil {
 		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
 	}
 
 	return &response, rateLimit, nil
+}
+
+func (c *Client) createUser(ctx context.Context, userRequest UserRequest) (
+	*UserResponse,
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/createUser
+	path := "/api/{{.apiVersion}}/users"
+	pathParameters := map[string]string{"apiVersion": apiVersion}
+
+	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating create user URL: %w", err)
+	}
+
+	payload := map[string]interface{}{
+		"firstName": userRequest.FirstName,
+		"lastName":  userRequest.LastName,
+		"email":     userRequest.Email,
+		"roleIds":   userRequest.RoleIDs,
+	}
+
+	var response UserResponse
+	rateLimit, err := c.post(ctx, url, &response, payload)
+	if err != nil {
+		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return &response, rateLimit, nil
+}
+
+func (c *Client) deleteUser(ctx context.Context, userId string) (
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/deleteUser
+	path := "/api/{{.apiVersion}}/users/{{.userID}}"
+	pathParameters := map[string]string{"apiVersion": apiVersion, "userID": userId}
+
+	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error generating delete user URL: %w", err)
+	}
+
+	rateLimit, err := c.delete(ctx, url, nil)
+	if err != nil {
+		return rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return rateLimit, nil
 }

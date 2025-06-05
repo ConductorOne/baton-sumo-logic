@@ -7,9 +7,14 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-sumo-logic/pkg/client"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type userBuilder struct {
@@ -19,6 +24,86 @@ type userBuilder struct {
 
 func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return userResourceType
+}
+
+func (o *userBuilder) CreateAccountCapabilityDetails(_ context.Context) (*v2.CredentialDetailsAccountProvisioning, annotations.Annotations, error) {
+	return &v2.CredentialDetailsAccountProvisioning{
+		SupportedCredentialOptions: []v2.CapabilityDetailCredentialOption{
+			v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+		},
+		PreferredCredentialOption: v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+	}, nil, nil
+}
+
+func (o *userBuilder) CreateAccount(
+	ctx context.Context,
+	accountInfo *v2.AccountInfo,
+	credentialOptions *v2.CredentialOptions,
+) (
+	connectorbuilder.CreateAccountResponse,
+	[]*v2.PlaintextData,
+	annotations.Annotations,
+	error,
+) {
+	userRequest, err := accountInfoToUserRequest(accountInfo)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	outputAnnotations := annotations.New()
+	user, rateLimit, err := o.service.CreateUser(ctx, *userRequest)
+	outputAnnotations.WithRateLimiting(rateLimit)
+	if err != nil {
+		return nil, nil, outputAnnotations, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	userResource, err := createUserResource(user)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	car := &v2.CreateAccountResponse_SuccessResult{
+		Resource: userResource,
+	}
+
+	return car, nil, nil, nil
+}
+
+// Delete implements the ResourceDeleter interface.
+func (o *userBuilder) Delete(ctx context.Context, resourceId *v2.ResourceId) (annotations.Annotations, error) {
+	accountID := resourceId.GetResource()
+	if len(accountID) == 0 {
+		return nil, fmt.Errorf("missing resource ID")
+	}
+	l := ctxzap.Extract(ctx).With(zap.String("accountID", accountID))
+
+	// check the account exists
+	outputAnnotations := annotations.New()
+	account, rateLimit, err := o.service.GetUserByID(ctx, accountID)
+	outputAnnotations.WithRateLimiting(rateLimit)
+	if err != nil {
+		l.Error("baton-sumo-logic: delete-user: failed to get account by user ID", zap.Error(err))
+		return outputAnnotations, err
+	}
+
+	// delete the account
+	rateLimit, err = o.service.DeleteUser(ctx, account.ID)
+	outputAnnotations.WithRateLimiting(rateLimit)
+	if err != nil {
+		l.Error("baton-sumo-logic: delete-user: failed to delete account with user ID", zap.Error(err))
+		return outputAnnotations, err
+	}
+
+	// verify the account no longer exists
+	_, rateLimit, err = o.service.GetUserByID(ctx, account.ID)
+	outputAnnotations.WithRateLimiting(rateLimit)
+	if err == nil || status.Code(err) != codes.NotFound {
+		l.Error("baton-sumo-logic: delete-user: failed: Account with ID should have been deleted", zap.Error(err))
+		return outputAnnotations, err
+	}
+	// log the deleted account success
+	l.Info("baton-sumo-logic: delete-user: success")
+	return nil, nil
 }
 
 // List returns all accounts (human and service accounts) from Sumo Logic as resource objects.
@@ -163,4 +248,35 @@ func createUserResource(account interface{}) (*v2.Resource, error) {
 		base.ID,
 		userTraitOptions,
 	)
+}
+
+func accountInfoToUserRequest(accountInfo *v2.AccountInfo) (*client.UserRequest, error) {
+	pMap := accountInfo.Profile.AsMap()
+
+	firstName, ok := pMap["first_name"]
+	if !ok {
+		return nil, fmt.Errorf("missing first name in account info")
+	}
+
+	lastName, ok := pMap["last_name"]
+	if !ok {
+		return nil, fmt.Errorf("missing last name in account info")
+	}
+
+	email, ok := pMap["email"]
+	if !ok {
+		return nil, fmt.Errorf("missing email in account info")
+	}
+
+	roleID, ok := pMap["default_role_id"]
+	if !ok {
+		return nil, fmt.Errorf("missing default role ID in account info")
+	}
+
+	return &client.UserRequest{
+		FirstName: firstName.(string),
+		LastName:  lastName.(string),
+		Email:     email.(string),
+		RoleIDs:   []string{roleID.(string)},
+	}, nil
 }

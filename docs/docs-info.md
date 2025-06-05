@@ -13,6 +13,7 @@ Note: Service account syncing can be optionally disabled using the `include-serv
 2. Can the connector provision any resources? If so, which ones? 
 
 Yes, the connector supports provisioning capabilities for:
+- User accounts (create and delete)
 - Role assignments (granting and revoking role memberships to users)
 
 ## Connector credentials 
@@ -80,7 +81,10 @@ The following credentials and configuration are required:
 
    * If applicable: Is the list of scopes or permissions different to sync (read) versus provision (read-write)? If so, list the difference here. 
 
-   No, the same permissions are required for both sync (read) and provisioning (read-write) operations. The "Manage Users and Roles" capability or an Administrator role is sufficient for all connector operations.
+   Yes, the permissions differ between sync and provisioning operations:
+   - For sync (read) operations: "View Users and Roles" capability is sufficient
+   - For provisioning (read-write) operations: "Manage Users and Roles" capability is required
+   - An Administrator role includes both capabilities and can perform all operations
 
    * What level of access or permissions does the user need in order to create the credentials? (For example, must be a super administrator, must have access to the admin console, etc.)  
 

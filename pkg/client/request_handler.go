@@ -29,6 +29,24 @@ func (c *Client) get(
 	)
 }
 
+func (c *Client) post(
+	ctx context.Context,
+	url *url.URL,
+	target interface{},
+	payload map[string]interface{},
+) (
+	*v2.RateLimitDescription,
+	error,
+) {
+	return c.doRequest(
+		ctx,
+		http.MethodPost,
+		url,
+		target,
+		uhttp.WithJSONBody(payload),
+	)
+}
+
 func (c *Client) put(
 	ctx context.Context,
 	url *url.URL,

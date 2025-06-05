@@ -24,6 +24,9 @@ jobs:
         run: go build -o connector ./cmd/baton-sumo-logic
 
       - name: Run and save output
+        env:
+          BATON_API_ACCESS_ID: ${{ secrets.CONNECTOR_CLIENT_ID }}
+          BATON_API_ACCESS_KEY: ${{ secrets.CONNECTOR_CLIENT_SECRET }}
         run: ./connector capabilities > baton_capabilities.json
 
       - name: Commit changes
