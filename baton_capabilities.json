@@ -3,6 +3,19 @@
   "resourceTypeCapabilities":  [
     {
       "resourceType":  {
+        "id":  "role",
+        "displayName":  "Role",
+        "traits":  [
+          "TRAIT_ROLE"
+        ]
+      },
+      "capabilities":  [
+        "CAPABILITY_SYNC",
+        "CAPABILITY_PROVISION"
+      ]
+    },
+    {
+      "resourceType":  {
         "id":  "user",
         "displayName":  "User",
         "traits":  [
@@ -10,12 +23,24 @@
         ]
       },
       "capabilities":  [
-        "CAPABILITY_SYNC"
+        "CAPABILITY_SYNC",
+        "CAPABILITY_ACCOUNT_PROVISIONING",
+        "CAPABILITY_RESOURCE_DELETE"
       ]
     }
   ],
   "connectorCapabilities":  [
-    "CAPABILITY_SYNC"
+    "CAPABILITY_PROVISION",
+    "CAPABILITY_SYNC",
+    "CAPABILITY_ACCOUNT_PROVISIONING",
+    "CAPABILITY_RESOURCE_DELETE"
   ],
-  "credentialDetails":  {}
+  "credentialDetails":  {
+    "capabilityAccountProvisioning":  {
+      "supportedCredentialOptions":  [
+        "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+      ],
+      "preferredCredentialOption":  "CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD"
+    }
+  }
 }
