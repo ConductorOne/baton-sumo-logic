@@ -149,3 +149,51 @@ func (c *Client) getRole(ctx context.Context, roleId string) (
 
 	return &response, rateLimit, nil
 }
+
+func (c *Client) assignRoleToUser(ctx context.Context, roleId string, userId string) (
+	*RoleResponse,
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/assignRoleToUser
+	path := "/api/{{.apiVersion}}/roles/{{.roleID}}/users/{{.userID}}"
+	pathParameters := map[string]string{"apiVersion": apiVersion, "roleID": roleId, "userID": userId}
+
+	var response RoleResponse
+
+	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating assign role to user URL: %w", err)
+	}
+
+	rateLimit, err := c.put(ctx, url, &response)
+	if err != nil {
+		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return &response, rateLimit, nil
+}
+
+func (c *Client) removeRoleFromUser(ctx context.Context, roleId string, userId string) (
+	*RoleResponse,
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/removeRoleFromUser
+	path := "/api/{{.apiVersion}}/roles/{{.roleID}}/users/{{.userID}}"
+	pathParameters := map[string]string{"apiVersion": apiVersion, "roleID": roleId, "userID": userId}
+
+	var response RoleResponse
+
+	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating remove role from user URL: %w", err)
+	}
+
+	rateLimit, err := c.delete(ctx, url, nil)
+	if err != nil {
+		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return &response, rateLimit, nil
+}

@@ -29,6 +29,41 @@ func (c *Client) get(
 	)
 }
 
+func (c *Client) put(
+	ctx context.Context,
+	url *url.URL,
+	target interface{},
+) (
+	*v2.RateLimitDescription,
+	error,
+) {
+	return c.doRequest(
+		ctx,
+		http.MethodPut,
+		url,
+		target,
+	)
+}
+
+func (c *Client) delete(
+	ctx context.Context,
+	url *url.URL,
+	target interface{},
+) (
+	*v2.RateLimitDescription,
+	error,
+) {
+	return c.doRequest(
+		ctx,
+		http.MethodDelete,
+		url,
+		target,
+	)
+}
+
+// doRequest is a helper function that creates a request and executes it.
+// It also handles the rate limiting and error response.
+// If the target is not nil, it will unmarshal the response into the target.
 func (c *Client) doRequest(
 	ctx context.Context,
 	method string,
@@ -63,12 +98,16 @@ func (c *Client) doRequest(
 	}
 
 	var ratelimitData v2.RateLimitDescription
-	response, err := c.httpClient.Do(
-		request,
+	doOptions := []uhttp.DoOption{
 		uhttp.WithRatelimitData(&ratelimitData),
-		uhttp.WithJSONResponse(&target),
 		uhttp.WithErrorResponse(&ErrorResponse{}),
-	)
+	}
+	// If the target is not nil, we want to unmarshal the response into the target.
+	if target != nil {
+		doOptions = append(doOptions, uhttp.WithJSONResponse(target))
+	}
+
+	response, err := c.httpClient.Do(request, doOptions...)
 	if err != nil {
 		return &ratelimitData, fmt.Errorf("request failed: %w", err)
 	}
