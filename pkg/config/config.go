@@ -1,13 +1,13 @@
-package main
+package config
 
 import (
 	"github.com/conductorone/baton-sdk/pkg/field"
-	"github.com/spf13/viper"
 )
 
 var (
 	apiBaseURLField = field.StringField(
 		"api-base-url",
+		field.WithDisplayName("API base URL"),
 		field.WithDescription("The Sumo Logic API base URL. Options include:\n"+
 			"- AU: https://api.au.sumologic.com\n"+
 			"- CA: https://api.ca.sumologic.com\n"+
@@ -23,16 +23,20 @@ var (
 	)
 	apiAccessIDField = field.StringField(
 		"api-access-id",
+		field.WithDisplayName("API access ID"),
 		field.WithDescription("The Sumo Logic API access ID."),
 		field.WithRequired(true),
 	)
 	apiAccessKeyField = field.StringField(
 		"api-access-key",
+		field.WithDisplayName("API access key"),
 		field.WithDescription("The Sumo Logic API access key."),
 		field.WithRequired(true),
+		field.WithIsSecret(true),
 	)
 	includeServiceAccountsField = field.BoolField(
 		"include-service-accounts",
+		field.WithDisplayName("Include service accounts"),
 		field.WithDescription("Whether to include service accounts in the connector."),
 		field.WithDefaultValue(true),
 	)
@@ -54,10 +58,11 @@ var (
 	FieldRelationships = []field.SchemaFieldRelationship{}
 )
 
-// ValidateConfig is run after the configuration is loaded, and should return an
-// error if it isn't valid. Implementing this function is optional, it only
-// needs to perform extra validations that cannot be encoded with configuration
-// parameters.
-func ValidateConfig(v *viper.Viper) error {
-	return nil
-}
+//go:generate go run ./gen
+var Config = field.NewConfiguration(
+	ConfigurationFields,
+	field.WithConstraints(FieldRelationships...),
+	field.WithConnectorDisplayName("Sumo Logic"),
+	field.WithIconUrl("/static/app-icons/sumo-logic.svg"),
+	field.WithHelpUrl("/docs/baton/sumo-logic"),
+)
