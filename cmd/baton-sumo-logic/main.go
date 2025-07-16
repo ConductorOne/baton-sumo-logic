@@ -24,9 +24,7 @@ func main() {
 		ctx,
 		"baton-sumo-logic",
 		getConnector,
-		field.Configuration{
-			Fields: ConfigurationFields,
-		},
+		field.NewConfiguration(ConfigurationFields, field.WithConstraints(FieldRelationships...)),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
