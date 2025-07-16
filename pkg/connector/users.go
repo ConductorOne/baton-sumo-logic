@@ -111,41 +111,24 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 	outputAnnotations := annotations.New()
 	resources := make([]*v2.Resource, 0)
 
-	// Service accounts endpoint does not support pagination, so we only fetch them on the first page.
-	if pToken.Token == "" && o.includeServiceAccounts {
-		// Fetch both human and service accounts
-		serviceAccounts, rateLimit, err := o.service.GetServiceAccounts(ctx)
-		outputAnnotations.WithRateLimiting(rateLimit)
-		if err != nil {
-			return nil, "", outputAnnotations, fmt.Errorf("failed to get service accounts: %w", err)
-		}
-
-		// Process service accounts
-		for _, serviceAccount := range serviceAccounts {
-			userResource, err := createUserResource(serviceAccount)
-			if err != nil {
-				return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from service account: %w", err)
-			}
-			resources = append(resources, userResource)
-		}
-	}
-
-	// Fetch and process human accounts
-	humanAccounts, nextPageToken, rateLimit, err := o.service.GetUsers(ctx, parsePageToken(pToken))
+	// Fetch and process human (and service) accounts
+	accounts, nextPageToken, rateLimit, err := o.service.GetUsers(ctx, parsePageToken(pToken), o.includeServiceAccounts)
 	outputAnnotations.WithRateLimiting(rateLimit)
 	if err != nil {
 		return nil, "", outputAnnotations, fmt.Errorf("failed to get human accounts: %w", err)
 	}
+	fmt.Println("ALL USER AND SERVICE ACCOUNTS", accounts)
 
-	// Process human accounts
-	for _, humanAccount := range humanAccounts {
-		userResource, err := createUserResource(humanAccount)
+	// Process accounts
+	for _, account := range accounts {
+		resource, err := createUserResource(account)
 		if err != nil {
 			return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from human account: %w", err)
 		}
-		resources = append(resources, userResource)
+		resources = append(resources, resource)
 	}
 
+	fmt.Println("ALL USER AND SERVICE RESOURCES", resources)
 	return resources, createPageToken(nextPageToken), outputAnnotations, nil
 }
 

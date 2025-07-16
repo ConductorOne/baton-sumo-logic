@@ -46,8 +46,8 @@ func NewClient(ctx context.Context, apiBaseURL, apiAccessID, apiAccessKey string
 	}, nil
 }
 
-// GetUsers retrieves users from the API.
-func (c *Client) getUsers(ctx context.Context, pageToken *string) (
+// GetUsers retrieves user accounts (and service accounts when specified) from the API.
+func (c *Client) getUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) (
 	[]*UserResponse,
 	*string,
 	*v2.RateLimitDescription,
@@ -56,11 +56,12 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string) (
 	// API Doc: https://api.sumologic.com/docs/#operation/listUsers
 	path := "/api/{{.apiVersion}}/users"
 	pathParameters := map[string]string{"apiVersion": apiVersion}
+	queryParams := map[string]string{"includeServiceAccounts": fmt.Sprintf("%t", includeServiceAccounts)}
 
 	var response ApiResponse[UserResponse]
 
 	pageSize := uint(resourcePageSize)
-	url, err := c.constructURL(path, pathParameters, nil, pageToken, &pageSize)
+	url, err := c.constructURL(path, pathParameters, queryParams, pageToken, &pageSize)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error generating user list URL: %w", err)
 	}
@@ -71,31 +72,6 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string) (
 	}
 
 	return response.Data, response.Next, rateLimit, nil
-}
-
-// GetServiceAccounts retrieves service accounts from the API.
-func (c *Client) getServiceAccounts(ctx context.Context) (
-	[]*ServiceAccountResponse,
-	*v2.RateLimitDescription,
-	error,
-) {
-	// API Doc: https://api.sumologic.com/docs/#operation/listServiceAccounts
-	path := "/api/{{.apiVersion}}/serviceAccounts"
-	pathParameters := map[string]string{"apiVersion": apiVersion}
-
-	var response ApiResponse[ServiceAccountResponse]
-
-	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error generating service account list URL: %w", err)
-	}
-
-	rateLimit, err := c.get(ctx, url, &response)
-	if err != nil {
-		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
-	}
-
-	return response.Data, rateLimit, nil
 }
 
 // GetRoles retrieves roles from the API.
