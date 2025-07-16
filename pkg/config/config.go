@@ -5,8 +5,21 @@ import (
 )
 
 var (
-	apiBaseURLField = field.StringField(
+	apiBaseURLField = field.SelectField(
 		"api-base-url",
+		[]string{
+			"https://api.au.sumologic.com",
+			"https://api.ca.sumologic.com",
+			"https://api.de.sumologic.com",
+			"https://api.eu.sumologic.com",
+			"https://api.fed.sumologic.com",
+			"https://api.in.sumologic.com",
+			"https://api.jp.sumologic.com",
+			"https://api.kr.sumologic.com",
+			"https://api.sumologic.com",
+			"https://api.us2.sumologic.com",
+		},
+		field.WithDisplayName("API base URL"),
 		field.WithDescription("The Sumo Logic API base URL. Options include:\n"+
 			"- AU: https://api.au.sumologic.com\n"+
 			"- CA: https://api.ca.sumologic.com\n"+
@@ -22,16 +35,20 @@ var (
 	)
 	apiAccessIDField = field.StringField(
 		"api-access-id",
+		field.WithDisplayName("API access ID"),
 		field.WithDescription("The Sumo Logic API access ID."),
 		field.WithRequired(true),
 	)
 	apiAccessKeyField = field.StringField(
 		"api-access-key",
+		field.WithDisplayName("API access key"),
 		field.WithDescription("The Sumo Logic API access key."),
 		field.WithRequired(true),
+		field.WithIsSecret(true),
 	)
 	includeServiceAccountsField = field.BoolField(
 		"include-service-accounts",
+		field.WithDisplayName("Include service accounts"),
 		field.WithDescription("Whether to include service accounts in the connector."),
 		field.WithDefaultValue(true),
 	)
