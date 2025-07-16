@@ -5,20 +5,8 @@ import (
 )
 
 var (
-	apiBaseURLField = field.SelectField(
+	apiBaseURLField = field.StringField(
 		"api-base-url",
-		[]string{
-			"https://api.au.sumologic.com",
-			"https://api.ca.sumologic.com",
-			"https://api.de.sumologic.com",
-			"https://api.eu.sumologic.com",
-			"https://api.fed.sumologic.com",
-			"https://api.in.sumologic.com",
-			"https://api.jp.sumologic.com",
-			"https://api.kr.sumologic.com",
-			"https://api.sumologic.com",
-			"https://api.us2.sumologic.com",
-		},
 		field.WithDisplayName("API base URL"),
 		field.WithDescription("The Sumo Logic API base URL. Options include:\n"+
 			"- AU: https://api.au.sumologic.com\n"+
