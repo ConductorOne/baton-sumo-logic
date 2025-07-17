@@ -115,14 +115,14 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 	accounts, nextPageToken, rateLimit, err := o.service.GetUsers(ctx, parsePageToken(pToken), o.includeServiceAccounts)
 	outputAnnotations.WithRateLimiting(rateLimit)
 	if err != nil {
-		return nil, "", outputAnnotations, fmt.Errorf("failed to get human accounts: %w", err)
+		return nil, "", outputAnnotations, fmt.Errorf("failed to get user accounts: %w", err)
 	}
 
 	// Process accounts
 	for _, account := range accounts {
 		resource, err := createUserResource(account)
 		if err != nil {
-			return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from human account: %w", err)
+			return nil, "", outputAnnotations, fmt.Errorf("failed to create user resource from user account: %w", err)
 		}
 		resources = append(resources, resource)
 	}
@@ -147,8 +147,8 @@ func newUserBuilder(cclient *client.Client, includeServiceAccounts bool) *userBu
 	}
 }
 
-// createUserResource creates a resource object for either a UserResponse or ServiceAccountResponse.
-func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
+// createUserResource creates a resource object for either a user or service account.
+func createUserResource(account *client.Account) (*v2.Resource, error) {
 	if account == nil {
 		return nil, fmt.Errorf("account cannot be nil")
 	}
@@ -163,6 +163,12 @@ func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
 		"modified_by": account.ModifiedBy,
 	}
 
+	// This has the value true if the account has been locked.
+	// An account will be locked for security reasons after too many failed login attempts.
+	if account.IsLocked != nil {
+		profile["is_locked"] = *account.IsLocked
+	}
+
 	// Initialize base user trait options with common fields (email, login, and creation time).
 	userTraitOptions := []rs.UserTraitOption{
 		rs.WithUserLogin(account.Email),
@@ -175,29 +181,23 @@ func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
 		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_DISABLED))
 	}
 
+	// True if multi factor authentication is enabled for the account.
+	if account.IsMfaEnabled != nil {
+		userTraitOptions = append(userTraitOptions, rs.WithMFAStatus(&v2.UserTrait_MFAStatus{
+			MfaEnabled: *account.IsMfaEnabled,
+		}))
+	}
+
+	// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
+	if account.LastLoginTimestamp != nil {
+		userTraitOptions = append(userTraitOptions, rs.WithLastLogin(*account.LastLoginTimestamp))
+	}
+
 	// Handle specific account types
 	// User accounts have a firstName and lastName
 	if account.LastName != "" {
 		fullName = account.FirstName + " " + account.LastName
 		profile["full_name"] = fullName
-
-		// This has the value true if the user's account has been locked.
-		// If a user tries to log into their account several times and fails, his or her account will be locked for security reasons.
-		if account.IsLocked != nil {
-			profile["is_locked"] = *account.IsLocked
-		}
-
-		// True if multi factor authentication is enabled for the user.
-		if account.IsMfaEnabled != nil {
-			userTraitOptions = append(userTraitOptions, rs.WithMFAStatus(&v2.UserTrait_MFAStatus{
-				MfaEnabled: *account.IsMfaEnabled,
-			}))
-		}
-
-		// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
-		if account.LastLoginTimestamp != nil {
-			userTraitOptions = append(userTraitOptions, rs.WithLastLogin(*account.LastLoginTimestamp))
-		}
 
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_HUMAN))
 	} else {
@@ -211,7 +211,7 @@ func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
 
 	// The profile is assigned last because it needs to be built up with account-specific fields
 	// that are only known after determining whether this is a human or service account.
-	// This includes fields like full_name, is_locked, account_type, and other type-specific attributes.
+	// This includes fields like full_name and account_type.
 	userTraitOptions = append(userTraitOptions, rs.WithUserProfile(profile))
 
 	// Create the resource

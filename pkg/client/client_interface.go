@@ -8,9 +8,9 @@ import (
 
 // ClientService defines the interface for client operations.
 type ClientService interface {
-	GetUserByID(ctx context.Context, userId string) (*AccountResponse, *v2.RateLimitDescription, error)
-	GetUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*AccountResponse, *string, *v2.RateLimitDescription, error)
-	CreateUser(ctx context.Context, userRequest UserRequest) (*AccountResponse, *v2.RateLimitDescription, error)
+	GetUserByID(ctx context.Context, userId string) (*Account, *v2.RateLimitDescription, error)
+	GetUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*Account, *string, *v2.RateLimitDescription, error)
+	CreateUser(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error)
 	DeleteUser(ctx context.Context, userId string) (*v2.RateLimitDescription, error)
 	GetRoles(ctx context.Context, pageToken *string) ([]*RoleResponse, *string, *v2.RateLimitDescription, error)
 	GetRole(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error)
@@ -27,11 +27,11 @@ func NewClientService(client *Client) ClientService {
 	return &ClientServiceImpl{client: *client}
 }
 
-func (s *ClientServiceImpl) GetUserByID(ctx context.Context, userId string) (*AccountResponse, *v2.RateLimitDescription, error) {
+func (s *ClientServiceImpl) GetUserByID(ctx context.Context, userId string) (*Account, *v2.RateLimitDescription, error) {
 	return s.client.getUserByID(ctx, userId)
 }
 
-func (s *ClientServiceImpl) CreateUser(ctx context.Context, userRequest UserRequest) (*AccountResponse, *v2.RateLimitDescription, error) {
+func (s *ClientServiceImpl) CreateUser(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error) {
 	return s.client.createUser(ctx, userRequest)
 }
 
@@ -39,7 +39,7 @@ func (s *ClientServiceImpl) DeleteUser(ctx context.Context, userId string) (*v2.
 	return s.client.deleteUser(ctx, userId)
 }
 
-func (s *ClientServiceImpl) GetUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*AccountResponse, *string, *v2.RateLimitDescription, error) {
+func (s *ClientServiceImpl) GetUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*Account, *string, *v2.RateLimitDescription, error) {
 	return s.client.getUsers(ctx, pageToken, includeServiceAccounts)
 }
 

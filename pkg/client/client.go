@@ -48,7 +48,7 @@ func NewClient(ctx context.Context, apiBaseURL, apiAccessID, apiAccessKey string
 
 // GetUsers retrieves user accounts (and service accounts when specified) from the API.
 func (c *Client) getUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) (
-	[]*AccountResponse,
+	[]*Account,
 	*string,
 	*v2.RateLimitDescription,
 	error,
@@ -58,7 +58,7 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string, includeService
 	pathParameters := map[string]string{"apiVersion": apiVersion}
 	queryParams := map[string]string{"includeServiceAccounts": fmt.Sprintf("%t", includeServiceAccounts)}
 
-	var response ApiResponse[AccountResponse]
+	var response ApiResponse[Account]
 
 	pageSize := uint(resourcePageSize)
 	url, err := c.constructURL(path, pathParameters, queryParams, pageToken, &pageSize)
@@ -172,7 +172,7 @@ func (c *Client) removeRoleFromUser(ctx context.Context, roleId string, userId s
 }
 
 func (c *Client) getUserByID(ctx context.Context, userId string) (
-	*AccountResponse,
+	*Account,
 	*v2.RateLimitDescription,
 	error,
 ) {
@@ -185,7 +185,7 @@ func (c *Client) getUserByID(ctx context.Context, userId string) (
 		return nil, nil, fmt.Errorf("error generating get user by ID URL: %w", err)
 	}
 
-	var response AccountResponse
+	var response Account
 	rateLimit, err := c.get(ctx, url, &response)
 	if err != nil {
 		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
@@ -195,7 +195,7 @@ func (c *Client) getUserByID(ctx context.Context, userId string) (
 }
 
 func (c *Client) createUser(ctx context.Context, userRequest UserRequest) (
-	*AccountResponse,
+	*Account,
 	*v2.RateLimitDescription,
 	error,
 ) {
@@ -215,7 +215,7 @@ func (c *Client) createUser(ctx context.Context, userRequest UserRequest) (
 		"roleIds":   userRequest.RoleIDs,
 	}
 
-	var response AccountResponse
+	var response Account
 	rateLimit, err := c.post(ctx, url, &response, payload)
 	if err != nil {
 		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)

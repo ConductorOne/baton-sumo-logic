@@ -38,7 +38,7 @@ func TestUsersList(t *testing.T) {
 			pageToken *string,
 			includeServiceAccounts bool,
 		) (
-			[]*client.AccountResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -75,7 +75,7 @@ func TestUsersList(t *testing.T) {
 			pageToken *string,
 			includeServiceAccounts bool,
 		) (
-			[]*client.AccountResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -113,7 +113,7 @@ func TestUsersList(t *testing.T) {
 			pageToken *string,
 			includeServiceAccounts bool,
 		) (
-			[]*client.AccountResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -134,7 +134,7 @@ func TestUsersList(t *testing.T) {
 			pageToken *string,
 			includeServiceAccounts bool,
 		) (
-			[]*client.AccountResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -146,7 +146,7 @@ func TestUsersList(t *testing.T) {
 			lastLoginTimestamp := time.Now()
 			createdAt := time.Now()
 			modifiedAt := time.Now()
-			users := []*client.AccountResponse{
+			users := []*client.Account{
 				{
 					ID:                 "1",
 					Email:              email,
@@ -188,7 +188,7 @@ func TestUsersList(t *testing.T) {
 			pageToken *string,
 			includeServiceAccounts bool,
 		) (
-			[]*client.AccountResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -196,7 +196,7 @@ func TestUsersList(t *testing.T) {
 			isActive := true
 			createdAt := time.Now()
 			modifiedAt := time.Now()
-			accounts := []*client.AccountResponse{
+			accounts := []*client.Account{
 				{
 					ID:         "1",
 					Email:      "baton-service-account@conductorone.com",

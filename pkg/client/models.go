@@ -27,10 +27,15 @@ type ApiResponse[T any] struct {
 	Next *string `json:"next,omitempty"`
 }
 
-// AccountResponse can represent a user or service account.
-type AccountResponse struct {
+// Account can represent a user or service account.
+// Used for client requests and responses.
+type Account struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
+	// Represents the first name for a user or the "full" name for a service account.
+	FirstName string `json:"firstName"`
+	// Only used for user accounts.
+	LastName string `json:"lastName"`
 	// Creation timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
 	// https://datatracker.ietf.org/doc/html/rfc3339 .
 	CreatedAt time.Time `json:"createdAt"`
@@ -42,16 +47,10 @@ type AccountResponse struct {
 	ModifiedBy string   `json:"modifiedBy"`
 	RoleIDs    []string `json:"roleIds"`
 	IsActive   *bool    `json:"isActive,omitempty"`
-
-	// For both user and service accounts:
-	FirstName string `json:"firstName"`
-
-	// For only user accounts:
-	LastName string `json:"lastName"`
-	// This has the value true if the user's account has been locked.
-	// If a user tries to log into their account several times and fails, his or her account will be locked for security reasons.
+	// This has the value true if the account has been locked.
+	// An account will be locked for security reasons after too many failed login attempts.
 	IsLocked *bool `json:"isLocked,omitempty"`
-	// True if multi factor authentication is enabled for the user.
+	// True if multi factor authentication is enabled for the account.
 	IsMfaEnabled *bool `json:"isMfaEnabled,omitempty"`
 	// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
 	LastLoginTimestamp *time.Time `json:"lastLoginTimestamp,omitempty"`
