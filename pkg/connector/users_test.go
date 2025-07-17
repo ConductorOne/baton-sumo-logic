@@ -36,8 +36,9 @@ func TestUsersList(t *testing.T) {
 		mockClientService.GetUsersFunc = func(
 			ctx context.Context,
 			pageToken *string,
+			includeServiceAccounts bool,
 		) (
-			[]*client.UserResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -65,14 +66,17 @@ func TestUsersList(t *testing.T) {
 		require.NotNil(t, rateLimitData.ResetAt)
 	})
 
-	t.Run("should get ratelimit annotations from service accounts", func(t *testing.T) {
+	t.Run("should get ratelimit annotations from users (with service accounts)", func(t *testing.T) {
 		// Create a new user builder with a mock client service.
 		userBuilder, mockClientService := newTestUserBuilder(true)
 
-		mockClientService.GetServiceAccountsFunc = func(
+		mockClientService.GetUsersFunc = func(
 			ctx context.Context,
+			pageToken *string,
+			includeServiceAccounts bool,
 		) (
-			[]*client.ServiceAccountResponse,
+			[]*client.Account,
+			*string,
 			*v2.RateLimitDescription,
 			error,
 		) {
@@ -80,7 +84,7 @@ func TestUsersList(t *testing.T) {
 				ResetAt: timestamppb.New(time.Now().Add(10 * time.Second)),
 			}
 			err := fmt.Errorf("ratelimit error")
-			return nil, &rateLimitData, err
+			return nil, nil, &rateLimitData, err
 		}
 
 		resources, token, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
@@ -107,8 +111,9 @@ func TestUsersList(t *testing.T) {
 		mockClientService.GetUsersFunc = func(
 			ctx context.Context,
 			pageToken *string,
+			includeServiceAccounts bool,
 		) (
-			[]*client.UserResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -127,8 +132,9 @@ func TestUsersList(t *testing.T) {
 		mockClientService.GetUsersFunc = func(
 			ctx context.Context,
 			pageToken *string,
+			includeServiceAccounts bool,
 		) (
-			[]*client.UserResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
@@ -140,18 +146,16 @@ func TestUsersList(t *testing.T) {
 			lastLoginTimestamp := time.Now()
 			createdAt := time.Now()
 			modifiedAt := time.Now()
-			users := []*client.UserResponse{
+			users := []*client.Account{
 				{
-					BaseAccount: client.BaseAccount{
-						ID:         "1",
-						Email:      email,
-						IsActive:   &isActive,
-						CreatedAt:  createdAt,
-						CreatedBy:  "test",
-						ModifiedBy: "test",
-						ModifiedAt: modifiedAt,
-						RoleIDs:    []string{"1", "2"},
-					},
+					ID:                 "1",
+					Email:              email,
+					IsActive:           &isActive,
+					CreatedAt:          createdAt,
+					CreatedBy:          "test",
+					ModifiedBy:         "test",
+					ModifiedAt:         modifiedAt,
+					RoleIDs:            []string{"1", "2"},
 					FirstName:          "Marcos",
 					LastName:           "Garcia",
 					IsMfaEnabled:       &isMfaEnabled,
@@ -179,56 +183,39 @@ func TestUsersList(t *testing.T) {
 		userBuilder, mockClientService := newTestUserBuilder(true)
 
 		// Mock the service accounts.
-		mockClientService.GetServiceAccountsFunc = func(
-			ctx context.Context,
-		) (
-			[]*client.ServiceAccountResponse,
-			*v2.RateLimitDescription,
-			error,
-		) {
-			email := "baton-service-account@conductorone.com"
-			isActive := true
-			createdAt := time.Now()
-			modifiedAt := time.Now()
-			serviceAccounts := []*client.ServiceAccountResponse{
-				{
-					BaseAccount: client.BaseAccount{
-						ID:         "1",
-						Email:      email,
-						IsActive:   &isActive,
-						CreatedAt:  createdAt,
-						CreatedBy:  "test",
-						ModifiedBy: "test",
-						ModifiedAt: modifiedAt,
-					},
-					Name: "baton-service-account",
-				},
-			}
-			return serviceAccounts, nil, nil
-		}
-
-		// Mock the users.
 		mockClientService.GetUsersFunc = func(
 			ctx context.Context,
 			pageToken *string,
+			includeServiceAccounts bool,
 		) (
-			[]*client.UserResponse,
+			[]*client.Account,
 			*string,
 			*v2.RateLimitDescription,
 			error,
 		) {
-			email := "baton-user@conductorone.com"
-			users := []*client.UserResponse{
+			isActive := true
+			createdAt := time.Now()
+			modifiedAt := time.Now()
+			accounts := []*client.Account{
 				{
-					BaseAccount: client.BaseAccount{
-						ID:    "2",
-						Email: email,
-					},
+					ID:         "1",
+					Email:      "baton-service-account@conductorone.com",
+					IsActive:   &isActive,
+					CreatedAt:  createdAt,
+					CreatedBy:  "test",
+					ModifiedBy: "test",
+					ModifiedAt: modifiedAt,
+					FirstName:  "baton-service-account",
+				},
+				{
+					ID:        "2",
+					Email:     "baton-user@conductorone.com",
 					FirstName: "Baton",
 					LastName:  "User",
+					IsActive:  &isActive,
 				},
 			}
-			return users, nil, nil, nil
+			return accounts, nil, nil, nil
 		}
 
 		resources, token, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})
