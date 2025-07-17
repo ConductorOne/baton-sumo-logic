@@ -193,14 +193,13 @@ func TestUsersList(t *testing.T) {
 			*v2.RateLimitDescription,
 			error,
 		) {
-			email := "baton-service-account@conductorone.com"
 			isActive := true
 			createdAt := time.Now()
 			modifiedAt := time.Now()
-			users := []*client.AccountResponse{
+			accounts := []*client.AccountResponse{
 				{
 					ID:         "1",
-					Email:      email,
+					Email:      "baton-service-account@conductorone.com",
 					IsActive:   &isActive,
 					CreatedAt:  createdAt,
 					CreatedBy:  "test",
@@ -208,31 +207,15 @@ func TestUsersList(t *testing.T) {
 					ModifiedAt: modifiedAt,
 					FirstName:  "baton-service-account",
 				},
-			}
-			return users, nil, nil, nil
-		}
-
-		// Mock the users.
-		mockClientService.GetUsersFunc = func(
-			ctx context.Context,
-			pageToken *string,
-			includeServiceAccounts bool,
-		) (
-			[]*client.AccountResponse,
-			*string,
-			*v2.RateLimitDescription,
-			error,
-		) {
-			email := "baton-user@conductorone.com"
-			users := []*client.AccountResponse{
 				{
 					ID:        "2",
-					Email:     email,
+					Email:     "baton-user@conductorone.com",
 					FirstName: "Baton",
 					LastName:  "User",
+					IsActive:  &isActive,
 				},
 			}
-			return users, nil, nil, nil
+			return accounts, nil, nil, nil
 		}
 
 		resources, token, annotations, err := userBuilder.List(ctx, nil, &pagination.Token{})

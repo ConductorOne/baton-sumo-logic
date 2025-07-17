@@ -117,7 +117,6 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 	if err != nil {
 		return nil, "", outputAnnotations, fmt.Errorf("failed to get human accounts: %w", err)
 	}
-	fmt.Println("ALL USER AND SERVICE ACCOUNTS", accounts)
 
 	// Process accounts
 	for _, account := range accounts {
@@ -128,7 +127,6 @@ func (o *userBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagina
 		resources = append(resources, resource)
 	}
 
-	fmt.Println("ALL USER AND SERVICE RESOURCES", resources)
 	return resources, createPageToken(nextPageToken), outputAnnotations, nil
 }
 
