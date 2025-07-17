@@ -150,73 +150,67 @@ func newUserBuilder(cclient *client.Client, includeServiceAccounts bool) *userBu
 }
 
 // createUserResource creates a resource object for either a UserResponse or ServiceAccountResponse.
-func createUserResource(account interface{}) (*v2.Resource, error) {
-	var fullName string
-	var base client.BaseAccount
-	switch a := account.(type) {
-	case *client.UserResponse:
-		base = a.BaseAccount
-	case *client.ServiceAccountResponse:
-		base = a.BaseAccount
-	default:
-		return nil, fmt.Errorf("unsupported account type: %T", account)
+func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
+	if account == nil {
+		return nil, fmt.Errorf("account cannot be nil")
 	}
 
+	var fullName string
 	profile := map[string]interface{}{
-		"id":          base.ID,
-		"email":       base.Email,
-		"created_at":  base.CreatedAt.Format(time.RFC3339),
-		"created_by":  base.CreatedBy,
-		"modified_at": base.ModifiedAt.Format(time.RFC3339),
-		"modified_by": base.ModifiedBy,
+		"id":          account.ID,
+		"email":       account.Email,
+		"created_at":  account.CreatedAt.Format(time.RFC3339),
+		"created_by":  account.CreatedBy,
+		"modified_at": account.ModifiedAt.Format(time.RFC3339),
+		"modified_by": account.ModifiedBy,
 	}
 
 	// Initialize base user trait options with common fields (email, login, and creation time).
 	userTraitOptions := []rs.UserTraitOption{
-		rs.WithUserLogin(base.Email),
-		rs.WithEmail(base.Email, true),
-		rs.WithCreatedAt(base.CreatedAt),
+		rs.WithUserLogin(account.Email),
+		rs.WithEmail(account.Email, true),
+		rs.WithCreatedAt(account.CreatedAt),
 	}
 
 	// default baton-sdk is enabled, so we only need to set disabled if the account is disabled.
-	if base.IsActive == nil || !*base.IsActive {
+	if account.IsActive == nil || !*account.IsActive {
 		userTraitOptions = append(userTraitOptions, rs.WithStatus(v2.UserTrait_Status_STATUS_DISABLED))
 	}
 
 	// Handle specific account types
-	switch a := account.(type) {
-	case *client.UserResponse:
-		fullName = a.FirstName + " " + a.LastName
+	// User accounts have a firstName and lastName
+	if account.LastName != "" {
+		fullName = account.FirstName + " " + account.LastName
 		profile["full_name"] = fullName
 
 		// This has the value true if the user's account has been locked.
 		// If a user tries to log into their account several times and fails, his or her account will be locked for security reasons.
-		if a.IsLocked != nil {
-			profile["is_locked"] = *a.IsLocked
+		if account.IsLocked != nil {
+			profile["is_locked"] = *account.IsLocked
 		}
 
 		// True if multi factor authentication is enabled for the user.
-		if a.IsMfaEnabled != nil {
+		if account.IsMfaEnabled != nil {
 			userTraitOptions = append(userTraitOptions, rs.WithMFAStatus(&v2.UserTrait_MFAStatus{
-				MfaEnabled: *a.IsMfaEnabled,
+				MfaEnabled: *account.IsMfaEnabled,
 			}))
 		}
 
 		// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
-		if a.LastLoginTimestamp != nil {
-			userTraitOptions = append(userTraitOptions, rs.WithLastLogin(*a.LastLoginTimestamp))
+		if account.LastLoginTimestamp != nil {
+			userTraitOptions = append(userTraitOptions, rs.WithLastLogin(*account.LastLoginTimestamp))
 		}
 
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_HUMAN))
 
-	case *client.ServiceAccountResponse:
-		fullName = a.Name
+	} else {
+		// Service accounts only firstName populated and no lastName
+		// (technically they only have a "name" field but it's shoved into "firstName")
+		fullName = account.FirstName
 		profile["full_name"] = fullName
 
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_SERVICE))
 
-	default:
-		return nil, fmt.Errorf("unsupported account type: %T", account)
 	}
 
 	// The profile is assigned last because it needs to be built up with account-specific fields
@@ -228,7 +222,7 @@ func createUserResource(account interface{}) (*v2.Resource, error) {
 	return rs.NewUserResource(
 		fullName,
 		userResourceType,
-		base.ID,
+		account.ID,
 		userTraitOptions,
 	)
 }

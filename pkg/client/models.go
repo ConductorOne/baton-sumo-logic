@@ -27,7 +27,8 @@ type ApiResponse[T any] struct {
 	Next *string `json:"next,omitempty"`
 }
 
-type BaseAccount struct {
+// AccountResponse can represent a user or service account
+type AccountResponse struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
 	// Creation timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
@@ -41,12 +42,12 @@ type BaseAccount struct {
 	ModifiedBy string   `json:"modifiedBy"`
 	RoleIDs    []string `json:"roleIds"`
 	IsActive   *bool    `json:"isActive,omitempty"`
-}
 
-type UserResponse struct {
-	BaseAccount
+	// For both user and service accounts:
 	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+
+	// For only user accounts:
+	LastName string `json:"lastName"`
 	// This has the value true if the user's account has been locked.
 	// If a user tries to log into their account several times and fails, his or her account will be locked for security reasons.
 	IsLocked *bool `json:"isLocked,omitempty"`
@@ -54,11 +55,6 @@ type UserResponse struct {
 	IsMfaEnabled *bool `json:"isMfaEnabled,omitempty"`
 	// Last login timestamp in UTC in RFC3339 format <date-time> (YYYY-MM-DDTHH:MM:SSZ).
 	LastLoginTimestamp *time.Time `json:"lastLoginTimestamp,omitempty"`
-}
-
-type ServiceAccountResponse struct {
-	BaseAccount
-	Name string `json:"name"`
 }
 
 type RoleResponse struct {
