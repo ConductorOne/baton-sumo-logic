@@ -27,7 +27,7 @@ type ApiResponse[T any] struct {
 	Next *string `json:"next,omitempty"`
 }
 
-// AccountResponse can represent a user or service account
+// AccountResponse can represent a user or service account.
 type AccountResponse struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`

@@ -200,7 +200,6 @@ func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
 		}
 
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_HUMAN))
-
 	} else {
 		// Service accounts only firstName populated and no lastName
 		// (technically they only have a "name" field but it's shoved into "firstName")
@@ -208,7 +207,6 @@ func createUserResource(account *client.AccountResponse) (*v2.Resource, error) {
 		profile["full_name"] = fullName
 
 		userTraitOptions = append(userTraitOptions, rs.WithAccountType(v2.UserTrait_ACCOUNT_TYPE_SERVICE))
-
 	}
 
 	// The profile is assigned last because it needs to be built up with account-specific fields
