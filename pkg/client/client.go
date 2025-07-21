@@ -56,7 +56,12 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string, includeService
 	// API Doc: https://api.sumologic.com/docs/#operation/listUsers
 	path := "/api/{{.apiVersion}}/users"
 	pathParameters := map[string]string{"apiVersion": apiVersion}
-	queryParams := map[string]string{"includeServiceAccounts": fmt.Sprintf("%t", includeServiceAccounts)}
+	queryParams := map[string]string{
+		"includeServiceAccounts": fmt.Sprintf("%t", includeServiceAccounts),
+		// Sort by last name in ascending order.
+		// Service accounts have empty strings, so they should be at the beginning.
+		"sortBy": "lastName",
+	}
 
 	var response ApiResponse[Account]
 
