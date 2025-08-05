@@ -41,7 +41,7 @@ func (c *Client) constructURL(path string, pathParams map[string]string, queryPa
 		q.Set("token", *pageToken)
 	}
 	if pageSize != nil {
-		// API Doc: Default value is 100 and the range is 1-100.
+		// API Doc: Default value is 100 and the range is 1-1000.
 		q.Set("limit", fmt.Sprintf("%d", *pageSize))
 	}
 	// Add any additional query parameters

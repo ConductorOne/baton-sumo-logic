@@ -7,11 +7,13 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 const (
 	apiVersion       = "v1"
-	resourcePageSize = 100 // API: Default value is 100 and the range is 1-100.
+	resourcePageSize = 1000 // API: Default value is 100 and the range is 1-1000.
 )
 
 type Client struct {
@@ -53,6 +55,7 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string, includeService
 	*v2.RateLimitDescription,
 	error,
 ) {
+	l := ctxzap.Extract(ctx)
 	// API Doc: https://api.sumologic.com/docs/#operation/listUsers
 	path := "/api/{{.apiVersion}}/users"
 	pathParameters := map[string]string{"apiVersion": apiVersion}
@@ -70,6 +73,13 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string, includeService
 	if err != nil {
 		return nil, nil, rateLimit, fmt.Errorf("error executing request: %w", err)
 	}
+
+	l.Debug("get-users: results",
+		zap.String("request_url", url.String()),
+		zap.Bool("include_service_accounts", includeServiceAccounts),
+		zap.Int("users_count", len(response.Data)),
+		zap.String("next_page_token", *response.Next),
+	)
 
 	return response.Data, response.Next, rateLimit, nil
 }
