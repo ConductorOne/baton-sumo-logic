@@ -7,7 +7,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.x
+          go-version: 1.24.x
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run linters
@@ -18,7 +18,7 @@ jobs:
   go-test:
     strategy:
       matrix:
-        go-version: [1.22.x]
+        go-version: [1.24.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -39,39 +39,14 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    # Define any services needed for the test suite (or delete this section)
-    # services:
-    #   postgres:
-    #     image: postgres:16
-    #     ports:
-    #       - "5432:5432"
-    #     env:
-    #       POSTGRES_PASSWORD: secretpassword
     env:
       BATON_LOG_LEVEL: debug
-      # Add any environment variables needed to run connector.
-      CONNECTOR_NAME: baton-sumo-logic
-      # Flags and command.
-      CONNECTOR_FLAGS: >-
-        --api-base-url https://api.sumologic.com
-        --api-access-id ${{ secrets.CONNECTOR_CLIENT_ID }}
-        --api-access-key ${{ secrets.CONNECTOR_CLIENT_SECRET }}
-        --include-service-accounts
-      # Connector command.
-      CONNECTOR_CMD: ${CONNECTOR_NAME} ${CONNECTOR_FLAGS}
-      # The following parameters are passed to grant/revoke commands
-      # Change these to the correct IDs for your test data
-      CONNECTOR_ENTITLEMENT: 'role:0000000000C060EA:assigned'
-      CONNECTOR_PRINCIPAL: '0000000000C39F85'
-      CONNECTOR_PRINCIPAL_TYPE: 'user'
-      CONNECTOR_GRANT: '${CONNECTOR_ENTITLEMENT}:${CONNECTOR_PRINCIPAL_TYPE}:${CONNECTOR_PRINCIPAL}'
-      # Account parameters
+      BATON_API_BASE_URL: https://api.sumologic.com
+      BATON_API_ACCESS_ID: ${{ secrets.API_ACCESS_ID }}
+      BATON_API_ACCESS_KEY: ${{ secrets.API_ACCESS_KEY }}
+      BATON_INCLUDE_SERVICE_ACCOUNTS: true
       # This is the display name of the account and we use it to check if the account was created.
       ACCOUNT_DISPLAYNAME: 'first-name-test last-name-test'
-      # Create account flags.
-      CREATE_ACCOUNT_FLAGS: >-
-        --create-account-email="test@test.com"
-        --create-account-profile='{"email":"test@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D04"}'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
@@ -79,47 +54,35 @@ jobs:
           go-version: 1.24.x
       - name: Checkout code
         uses: actions/checkout@v4
-      # Install baton
-      - name: Install baton
-        run: ./scripts/get-baton.sh && mv baton /usr/local/bin
-      # Build connector
-      - name: Build ${{ env.CONNECTOR_NAME }}
-        run: go build ./cmd/${{ env.CONNECTOR_NAME }}
-      # Run connector (sync data)
-      - name: Run connector
-        run: ./${{ env.CONNECTOR_CMD }}
-      # Grant and revoke tests
-      - name: Check for grant before revoking
-        run: baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status '(.grants // []) | [.[].grant.principal.id.resource] | any(. == "'${{ env.CONNECTOR_PRINCIPAL }}'")'
-
-      - name: Revoke grants
-        run: ./${{ env.CONNECTOR_CMD }} --revoke-grant="${{ env.CONNECTOR_GRANT }}"
-
-      - name: Check grant was revoked
-        run: ./${{ env.CONNECTOR_CMD }} && baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq -r '(.grants | length == 0) or ([ .grants[].grant.principal.id.resource ] | all(. != "'${{ env.CONNECTOR_PRINCIPAL }}'"))'
-
-      - name: Grant entitlement
-        run: ./${{ env.CONNECTOR_CMD }} --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
-
-      - name: Check grant was re-granted
-        run: ./${{ env.CONNECTOR_CMD }} &&
-          baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | jq --exit-status '(.grants // []) | [.[].grant.principal.id.resource] | any(. == "'${{ env.CONNECTOR_PRINCIPAL }}'")'
+      - name: Build baton-sumo-logic
+        run: go build ./cmd/baton-sumo-logic
+      - name: Grant/revoke
+        uses: ConductorOne/github-workflows/actions/sync-test@v2
+        with:
+          connector: ./baton-sumo-logic
+          baton-entitlement: 'role:0000000000C06D0B:assigned'
+          baton-principal: '0000000000C3D49D'
+          baton-principal-type: user
 
       - name: Create account
-        run: ./${{ env.CONNECTOR_CMD }} ${{ env.CREATE_ACCOUNT_FLAGS }}
+        env:
+          CREATE_ACCOUNT_FLAGS: >-
+            --create-account-email="test@test.com"
+            --create-account-profile='{"email":"test@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C06D0B"}'
+        run: ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
 
       - name: Check account was created
         id: check_account
         run: |
-          ./${{ env.CONNECTOR_CMD }}
+          ./baton-sumo-logic
           CREATED_ACCOUNT_ID=$(baton principals --output-format=json | jq -r --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources[] | select(.resource.displayName == $name) | .resource.id.resource')
           echo "account_id=$CREATED_ACCOUNT_ID" >> $GITHUB_OUTPUT
           [ -n "$CREATED_ACCOUNT_ID" ]
 
       - name: Delete account
-        run: ./${{ env.CONNECTOR_CMD }} --delete-resource "${{ steps.check_account.outputs.account_id }}" --delete-resource-type "user"
+        run: ./baton-sumo-logic --delete-resource "${{ steps.check_account.outputs.account_id }}" --delete-resource-type "user"
 
       - name: Check account was deleted
-        run: ./${{ env.CONNECTOR_CMD }} && baton principals --output-format=json | jq -e --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources | map(select(.resource.displayName == $name)) | length == 0'
+        run: ./baton-sumo-logic && baton principals --output-format=json | jq -e --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources | map(select(.resource.displayName == $name)) | length == 0'
 
  
