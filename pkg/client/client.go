@@ -78,7 +78,7 @@ func (c *Client) getUsers(ctx context.Context, pageToken *string, includeService
 		zap.String("request_url", url.String()),
 		zap.Bool("include_service_accounts", includeServiceAccounts),
 		zap.Int("users_count", len(response.Data)),
-		zap.String("next_page_token", *response.Next),
+		zap.Stringp("next_page_token", response.Next),
 	)
 
 	return response.Data, response.Next, rateLimit, nil
