@@ -40,6 +40,13 @@ var (
 		field.WithDescription("Whether to include service accounts in the connector."),
 		field.WithDefaultValue(true),
 	)
+	deactivatedRoleNameField = field.StringField(
+		"deactivated-role-name",
+		field.WithDisplayName("Deactivated role name"),
+		field.WithDescription("Name of the role with the lowest level of privileges that will be assigned to users when their last role is revoked."),
+		field.WithRequired(false),
+		field.WithDefaultValue("Analyst"),
+	)
 
 	// ConfigurationFields defines the external configuration required for the
 	// connector to run. Note: these fields can be marked as optional or
@@ -49,6 +56,7 @@ var (
 		apiAccessIDField,
 		apiAccessKeyField,
 		includeServiceAccountsField,
+		deactivatedRoleNameField,
 	}
 
 	// FieldRelationships defines relationships between the fields listed in

@@ -32,7 +32,7 @@ update-deps:
 	go mod vendor
 
 .PHONY: add-deps
-add-dep:
+add-deps:
 	go mod tidy -v
 	go mod vendor
 

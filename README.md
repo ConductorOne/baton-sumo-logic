@@ -16,6 +16,7 @@ This connector requires the following configuration:
 - `api-access-id`: The Sumo Logic API access ID
 - `api-access-key`: The Sumo Logic API access key
 - `include-service-accounts`: Whether to include service accounts (default: true)
+- `deactivated-role-name`: Name of the low-privilege role to assign when a user's last role is revoked (default: "Analyst")
 
 You can provide these values as environment variables:
 
@@ -100,6 +101,7 @@ Flags:
       --api-access-id string         The Sumo Logic API access ID ($BATON_API_ACCESS_ID)
       --api-access-key string        The Sumo Logic API access key ($BATON_API_ACCESS_KEY)
       --include-service-accounts     Whether to include service accounts ($BATON_INCLUDE_SERVICE_ACCOUNTS) (default true)
+      --deactivated-role-name string Name of the fallback role assigned when revoking a user’s last role ($BATON_DEACTIVATED_ROLE_NAME) (default "Analyst")
       --client-id string             The client ID used to authenticate with ConductorOne ($BATON_CLIENT_ID)
       --client-secret string         The client secret used to authenticate with ConductorOne ($BATON_CLIENT_SECRET)
   -f, --file string                  The path to the c1z file to sync with ($BATON_FILE) (default "sync.c1z")

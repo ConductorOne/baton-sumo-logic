@@ -20,7 +20,7 @@ func newTestRoleBuilder() (*roleBuilder, *client.MockClientService) {
 	mockClient := &client.Client{}
 	mockClientService := &client.MockClientService{}
 
-	builder := newRoleBuilder(mockClient)
+	builder := newRoleBuilder(mockClient, "deactivated-role")
 	// Replace the service with our mock.
 	builder.service = mockClientService
 
