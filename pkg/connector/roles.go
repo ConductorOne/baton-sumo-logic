@@ -30,7 +30,7 @@ func (o *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 func (o *roleBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	outputAnnotations := annotations.New()
 
-	roles, nextPageToken, rateLimit, err := o.service.GetRoles(ctx, parsePageToken(pToken)) 
+	roles, nextPageToken, rateLimit, err := o.service.GetRoles(ctx, parsePageToken(pToken))
 	outputAnnotations.WithRateLimiting(rateLimit)
 	if err != nil {
 		return nil, "", outputAnnotations, fmt.Errorf("failed to list roles: %w", err)
@@ -83,7 +83,7 @@ func (o *roleBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 			},
 		}
 
-				rv = append(rv, grant.NewGrant(resource, roleAssignmentEntitlement, userResource))
+		rv = append(rv, grant.NewGrant(resource, roleAssignmentEntitlement, userResource))
 	}
 
 	return rv, "", outputAnnotations, nil
