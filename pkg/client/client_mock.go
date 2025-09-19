@@ -15,6 +15,7 @@ type MockClientService struct {
 	GetRoleFunc            func(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error)
 	AssignRoleToUserFunc   func(ctx context.Context, roleId string, userId string) (*RoleResponse, *v2.RateLimitDescription, error)
 	RemoveRoleFromUserFunc func(ctx context.Context, roleId string, userId string) (*v2.RateLimitDescription, error)
+	SearchRoleByNameFunc   func(ctx context.Context, roleName string) (*RoleResponse, *v2.RateLimitDescription, error)
 }
 
 func (m *MockClientService) GetUserByID(ctx context.Context, userId string) (*Account, *v2.RateLimitDescription, error) {
@@ -47,4 +48,8 @@ func (m *MockClientService) AssignRoleToUser(ctx context.Context, roleId string,
 
 func (m *MockClientService) RemoveRoleFromUser(ctx context.Context, roleId string, userId string) (*v2.RateLimitDescription, error) {
 	return m.RemoveRoleFromUserFunc(ctx, roleId, userId)
+}
+
+func (m *MockClientService) SearchRoleByName(ctx context.Context, roleName string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	return m.SearchRoleByNameFunc(ctx, roleName)
 }

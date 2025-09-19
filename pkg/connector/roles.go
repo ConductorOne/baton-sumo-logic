@@ -152,28 +152,13 @@ func (o *roleBuilder) Revoke(
 	// If this is the user's only role, first assign the deactivated role (if configured)
 	if len(user.RoleIDs) == 1 && user.RoleIDs[0] == grant.Entitlement.Resource.Id.Resource {
 		if o.deactivatedRoleName != "" {
-			var deactivatedRoleID string
-			var pToken *string
-
-			for {
-				roles, nextPageToken, rl, err := o.service.GetRoles(ctx, pToken)
-				outputAnnotations.WithRateLimiting(rl)
-				if err != nil {
-					return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to list roles to find deactivated role: %w", err)
-				}
-				for _, r := range roles {
-					if r.Name == o.deactivatedRoleName {
-						deactivatedRoleID = r.ID
-						break
-					}
-				}
-
-				if deactivatedRoleID != "" || nextPageToken == nil {
-					break
-				}
-				pToken = nextPageToken
+			role, rlSearch, errSearch := o.service.SearchRoleByName(ctx, o.deactivatedRoleName)
+			outputAnnotations.WithRateLimiting(rlSearch)
+			if errSearch != nil {
+				return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to find deactivated role: %w", errSearch)
 			}
 
+			deactivatedRoleID := role.ID
 			if deactivatedRoleID != "" && deactivatedRoleID != grant.Entitlement.Resource.Id.Resource {
 				_, rlAssign, errAssign := o.service.AssignRoleToUser(ctx, deactivatedRoleID, user.ID)
 				outputAnnotations.WithRateLimiting(rlAssign)
@@ -181,7 +166,6 @@ func (o *roleBuilder) Revoke(
 					return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to assign deactivated role to user: %w", errAssign)
 				}
 			} else {
-				// Deactivated role not configured or same as current role; skip revocation to avoid validation error
 				return outputAnnotations, fmt.Errorf("baton-sumo-logic: cannot revoke user's only role")
 			}
 		} else {
