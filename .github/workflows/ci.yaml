@@ -60,15 +60,15 @@ jobs:
         uses: ConductorOne/github-workflows/actions/sync-test@v2
         with:
           connector: ./baton-sumo-logic
-          baton-entitlement: 'role:0000000000C06D0B:assigned'
+          baton-entitlement: 'role:0000000000C05D05:assigned'
           baton-principal: '0000000000C3D49D'
           baton-principal-type: user
 
       - name: Create account
         env:
           CREATE_ACCOUNT_FLAGS: >-
-            --create-account-email="test@test.com"
-            --create-account-profile='{"email":"test@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C06D0B"}'
+            --create-account-email="testC1@test.com"
+            --create-account-profile='{"email":"testC1@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
         run: ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
 
       - name: Check account was created
