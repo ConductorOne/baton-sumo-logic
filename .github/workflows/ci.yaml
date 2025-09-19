@@ -60,8 +60,8 @@ jobs:
       - name: Create account
         env:
           CREATE_ACCOUNT_FLAGS: >-
-            --create-account-email="testConductorOn@test.com"
-            --create-account-profile='{"email":"testConductorOn@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
+            --create-account-email="testConductorO@test.com"
+            --create-account-profile='{"email":"testConductorO@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
         run: ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
 
       - name: Check account was created
