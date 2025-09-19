@@ -57,26 +57,12 @@ jobs:
       - name: Build baton-sumo-logic
         run: go build ./cmd/baton-sumo-logic
 
-      - name: Create test account
-        id: create_account
+      - name: Create account
         env:
           CREATE_ACCOUNT_FLAGS: >-
-            --create-account-email="testC1@test.com"
-            --create-account-profile='{"email":"testC1@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
-        run: |
-          ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
-          ACCOUNT_ID=$(baton principals --output-format=json |
-            jq -r --arg email "testC1@test.com" '.resources[] |
-            select(.profile.email==$email) | .resource.id.resource')
-          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Grant/revoke
-        uses: ConductorOne/github-workflows/actions/sync-test@v2
-        with:
-          connector: ./baton-sumo-logic
-          baton-entitlement: 'role:0000000000C05D05:assigned'
-          baton-principal: ${{ steps.create_account.outputs.account_id }}
-          baton-principal-type: user
+            --create-account-email="testConductorOne@test.com"
+            --create-account-profile='{"email":"testConductorOne@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
+        run: ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
 
       - name: Check account was created
         id: check_account
