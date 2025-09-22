@@ -45,7 +45,6 @@ jobs:
       BATON_API_ACCESS_ID: ${{ secrets.API_ACCESS_ID }}
       BATON_API_ACCESS_KEY: ${{ secrets.API_ACCESS_KEY }}
       BATON_INCLUDE_SERVICE_ACCOUNTS: true
-      # This is the display name of the account and we use it to check if the account was created.
       ACCOUNT_DISPLAYNAME: 'first-name-test last-name-test'
     steps:
       - name: Install Go
@@ -54,28 +53,41 @@ jobs:
           go-version: 1.24.x
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set dynamic email
+        id: vars
+        run: echo "EMAIL=test-${{ github.run_id }}@example.com" >> "$GITHUB_OUTPUT"
+
+      - name: Install baton
+        run: ./scripts/get-baton.sh && sudo mv baton /usr/local/bin
+      
       - name: Build baton-sumo-logic
         run: go build ./cmd/baton-sumo-logic
 
       - name: Create account
         env:
-          CREATE_ACCOUNT_FLAGS: >-
-            --create-account-email="testConductorOnee@test.com"
-            --create-account-profile='{"email":"testConductorOnee@test.com","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
-        run: ./baton-sumo-logic ${{ env.CREATE_ACCOUNT_FLAGS }}
+          EMAIL: ${{ steps.vars.outputs.EMAIL }}
+        run: |
+          ./baton-sumo-logic \
+            --create-account-email="$EMAIL" \
+            --create-account-profile='{"email":"'"$EMAIL"'","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
 
       - name: Check account was created
         id: check_account
+        env:
+          EMAIL: ${{ steps.vars.outputs.EMAIL }}
         run: |
           ./baton-sumo-logic
-          CREATED_ACCOUNT_ID=$(baton principals --output-format=json | jq -r --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources[] | select(.resource.displayName == $name) | .resource.id.resource')
-          echo "account_id=$CREATED_ACCOUNT_ID" >> $GITHUB_OUTPUT
+          CREATED_ACCOUNT_ID=$(baton -f="sync.c1z" principals --output-format=json | jq -r --arg email "$EMAIL" '.resources[] | select(.profile.email == $email) | .resource.id.resource')
+          echo "account_id=$CREATED_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
           [ -n "$CREATED_ACCOUNT_ID" ]
 
       - name: Delete account
         run: ./baton-sumo-logic --delete-resource "${{ steps.check_account.outputs.account_id }}" --delete-resource-type "user"
 
       - name: Check account was deleted
-        run: ./baton-sumo-logic && baton principals --output-format=json | jq -e --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources | map(select(.resource.displayName == $name)) | length == 0'
+        env:
+          EMAIL: ${{ steps.vars.outputs.EMAIL }}
+        run: ./baton-sumo-logic && baton -f="sync.c1z" principals --output-format=json | jq -e --arg email "$EMAIL" '.resources | map(select(.profile.email == $email)) | length == 0'
 
  
