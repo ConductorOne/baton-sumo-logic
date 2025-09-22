@@ -1,5 +1,6 @@
 name: ci
 on: pull_request
+
 jobs:
   go-lint:
     runs-on: ubuntu-latest
@@ -15,6 +16,7 @@ jobs:
         with:
           version: latest
           args: --timeout=3m
+
   go-test:
     strategy:
       matrix:
@@ -45,57 +47,32 @@ jobs:
       BATON_API_ACCESS_ID: ${{ secrets.API_ACCESS_ID }}
       BATON_API_ACCESS_KEY: ${{ secrets.API_ACCESS_KEY }}
       BATON_INCLUDE_SERVICE_ACCOUNTS: true
-      ACCOUNT_DISPLAYNAME: 'first-name-test last-name-test'
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.24.x
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set dynamic email
-        id: vars
-        run: echo "EMAIL=test-${{ github.run_id }}@example.com" >> "$GITHUB_OUTPUT"
-
       - name: Install baton
         run: ./scripts/get-baton.sh && sudo mv baton /usr/local/bin
-      
+
       - name: Build baton-sumo-logic
         run: go build ./cmd/baton-sumo-logic
 
-      - name: Create account
-        env:
-          EMAIL: ${{ steps.vars.outputs.EMAIL }}
-        run: |
-          ./baton-sumo-logic --provisioning \
-            --create-account-email="$EMAIL" \
-            --create-account-profile='{"email":"'"$EMAIL"'","first_name":"first-name-test","last_name":"last-name-test","default_role_id":"0000000000C05D05"}'
-
-      - name: Check account was created
-        id: check_account
-        env:
-          EMAIL: ${{ steps.vars.outputs.EMAIL }}
-        run: |
-          ./baton-sumo-logic
-          CREATED_ACCOUNT_ID=$(baton -f="sync.c1z" principals --output-format=json | jq -r --arg email "$EMAIL" '.resources[] | select(.profile.email == $email) | .resource.id.resource')
-          echo "account_id=$CREATED_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
-          [ -n "$CREATED_ACCOUNT_ID" ]
-
-      - name: Delete account
-        run: ./baton-sumo-logic --provisioning \
-               --delete-resource "${{ steps.check_account.outputs.account_id }}" \
-               --delete-resource-type user
-
-      - name: Wait for propagation
-        run: sleep 15
-
-      - name: Check account was deleted
-        env:
-          EMAIL: ${{ steps.vars.outputs.EMAIL }}
-        run: ./baton-sumo-logic && \
-             baton -f="sync.c1z" principals --output-format=json | \
-             jq -e --arg email "$EMAIL" \
-               '.resources | map(select(.profile.email == $email)) | length == 0'
+      - name: Test Account Provisioning
+        uses: ConductorOne/github-workflows/actions/account-provisioning@v2.4.4
+        with:
+          connector: ./baton-sumo-logic
+          account-email: "test-${{ github.run_id }}@example.com"
+          account-profile: >-
+            {
+              "email": "test-${{ github.run_id }}@example.com",
+              "first_name": "Baton",
+              "last_name": "CI-Test",
+              "default_role_id": "0000000000C05D05"
+            }
 
  
