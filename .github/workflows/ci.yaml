@@ -63,7 +63,7 @@ jobs:
         run: go build ./cmd/baton-sumo-logic
 
       - name: Test Account Provisioning
-        uses: ConductorOne/github-workflows/actions/account-provisioning@v2
+        uses: ConductorOne/github-workflows/.github/actions/account-provisioning@v2
         with:
           connector: ./baton-sumo-logic
           account-email: "test-${{ github.run_id }}@example.com"
