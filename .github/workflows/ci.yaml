@@ -4,12 +4,12 @@ jobs:
   go-lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Run linters
         uses: golangci/golangci-lint-action@v8
         with:
@@ -18,22 +18,21 @@ jobs:
   go-test:
     strategy:
       matrix:
-        go-version: [1.24.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         if: success()
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: go tests
         run: (set -o pipefail && go test -v -covermode=count -json ./... | tee test.json)
       - name: annotate go tests
         if: always()
-        uses: guyarb/golang-test-annotations@v0.5.1
+        uses: guyarb/golang-test-annotations@v0.8.0
         with:
           test-results: test.json
 
@@ -46,22 +45,22 @@ jobs:
       BATON_API_ACCESS_KEY: ${{ secrets.API_ACCESS_KEY }}
       BATON_INCLUDE_SERVICE_ACCOUNTS: true
       # This is the display name of the account and we use it to check if the account was created.
-      ACCOUNT_DISPLAYNAME: 'first-name-test last-name-test'
+      ACCOUNT_DISPLAYNAME: "first-name-test last-name-test"
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Build baton-sumo-logic
         run: go build ./cmd/baton-sumo-logic
       - name: Grant/revoke
         uses: ConductorOne/github-workflows/actions/sync-test@v2
         with:
           connector: ./baton-sumo-logic
-          baton-entitlement: 'role:0000000000C06D0B:assigned'
-          baton-principal: '0000000000C3D49D'
+          baton-entitlement: "role:0000000000C06D0B:assigned"
+          baton-principal: "0000000000C3D49D"
           baton-principal-type: user
 
       - name: Create account
@@ -84,5 +83,3 @@ jobs:
 
       - name: Check account was deleted
         run: ./baton-sumo-logic && baton principals --output-format=json | jq -e --arg name "${{ env.ACCOUNT_DISPLAYNAME }}" '.resources | map(select(.resource.displayName == $name)) | length == 0'
-
- 
