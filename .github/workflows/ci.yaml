@@ -60,7 +60,7 @@ jobs:
         with:
           connector: ./baton-sumo-logic
           baton-entitlement: "role:0000000000C060EA:assigned"
-          baton-principal: "0000000000C3D49D"
+          baton-principal: "0000000000C40282"
           baton-principal-type: user
       - name: Test Account Provisioning
         uses: ConductorOne/github-workflows/actions/account-provisioning@v3
