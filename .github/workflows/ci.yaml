@@ -51,8 +51,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Install baton
-        uses: ConductorOne/github-workflows/actions/get-baton@v2
       - name: Build baton-sumo-logic
         run: go build ./cmd/baton-sumo-logic
       - name: Grant/revoke
