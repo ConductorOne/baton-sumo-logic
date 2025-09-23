@@ -59,7 +59,7 @@ jobs:
         uses: ConductorOne/github-workflows/actions/sync-test@v2
         with:
           connector: ./baton-sumo-logic
-          baton-entitlement: "role:0000000000C06D0B:assigned"
+          baton-entitlement: "role:0000000000C060EA:assigned"
           baton-principal: "0000000000C3D49D"
           baton-principal-type: user
       - name: Test Account Provisioning
