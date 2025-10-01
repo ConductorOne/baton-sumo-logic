@@ -32,6 +32,15 @@
       }
     },
     {
+      "name": "deactivated-role-name",
+      "displayName": "Deactivated role name",
+      "description": "Name of the role with the lowest level of privileges that will be assigned to users when their last role is revoked.",
+      "stringField": {
+        "defaultValue": "Analyst",
+        "rules": {}
+      }
+    },
+    {
       "name": "include-service-accounts",
       "displayName": "Include service accounts",
       "description": "Whether to include service accounts in the connector.",
