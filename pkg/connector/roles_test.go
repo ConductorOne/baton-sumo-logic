@@ -20,9 +20,22 @@ func newTestRoleBuilder() (*roleBuilder, *client.MockClientService) {
 	mockClient := &client.Client{}
 	mockClientService := &client.MockClientService{}
 
-	builder := newRoleBuilder(mockClient)
+	builder := newRoleBuilder(mockClient, "deactivated-role")
 	// Replace the service with our mock.
 	builder.service = mockClientService
+
+	mockClientService.GetUserByIDFunc = func(ctx context.Context, userId string) (*client.Account, *v2.RateLimitDescription, error) {
+		return &client.Account{
+			ID:      userId,
+			RoleIDs: []string{"test-role", "another-role"},
+		}, nil, nil
+	}
+	mockClientService.RemoveRoleFromUserFunc = func(ctx context.Context, roleId string, userId string) (*v2.RateLimitDescription, error) {
+		return nil, nil
+	}
+	mockClientService.AssignRoleToUserFunc = func(ctx context.Context, roleId string, userId string) (*client.RoleResponse, *v2.RateLimitDescription, error) {
+		return nil, nil, nil
+	}
 
 	return builder, mockClientService
 }

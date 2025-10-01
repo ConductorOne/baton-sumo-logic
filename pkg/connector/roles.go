@@ -18,7 +18,8 @@ import (
 const roleAssignmentEntitlement = "assigned"
 
 type roleBuilder struct {
-	service client.ClientService
+	service             client.ClientService
+	deactivatedRoleName string
 }
 
 func (o *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -141,6 +142,38 @@ func (o *roleBuilder) Revoke(
 
 	outputAnnotations := annotations.New()
 
+	// Fetch user to determine current role count
+	user, rl1, err := o.service.GetUserByID(ctx, grant.Principal.Id.Resource)
+	outputAnnotations.WithRateLimiting(rl1)
+	if err != nil {
+		return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to fetch user before revocation: %w", err)
+	}
+
+	// If this is the user's only role, first assign the deactivated role (if configured)
+	if len(user.RoleIDs) == 1 && user.RoleIDs[0] == grant.Entitlement.Resource.Id.Resource {
+		if o.deactivatedRoleName != "" {
+			role, rlSearch, errSearch := o.service.SearchRoleByName(ctx, o.deactivatedRoleName)
+			outputAnnotations.WithRateLimiting(rlSearch)
+			if errSearch != nil {
+				return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to find deactivated role: %w", errSearch)
+			}
+
+			deactivatedRoleID := role.ID
+			if deactivatedRoleID != "" && deactivatedRoleID != grant.Entitlement.Resource.Id.Resource {
+				_, rlAssign, errAssign := o.service.AssignRoleToUser(ctx, deactivatedRoleID, user.ID)
+				outputAnnotations.WithRateLimiting(rlAssign)
+				if errAssign != nil {
+					return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to assign deactivated role to user: %w", errAssign)
+				}
+			} else {
+				return outputAnnotations, fmt.Errorf("baton-sumo-logic: cannot revoke user's only role")
+			}
+		} else {
+			// Deactivated role not configured; skip revocation to avoid validation error
+			return outputAnnotations, fmt.Errorf("baton-sumo-logic: cannot revoke user's only role")
+		}
+	}
+
 	rateLimitData, err := o.service.RemoveRoleFromUser(
 		ctx,
 		grant.Entitlement.Resource.Id.Resource,
@@ -157,9 +190,10 @@ func (o *roleBuilder) Revoke(
 	return outputAnnotations, nil
 }
 
-func newRoleBuilder(cclient *client.Client) *roleBuilder {
+func newRoleBuilder(cclient *client.Client, deactivatedRoleName string) *roleBuilder {
 	return &roleBuilder{
-		service: client.NewClientService(cclient),
+		service:             client.NewClientService(cclient),
+		deactivatedRoleName: deactivatedRoleName,
 	}
 }
 

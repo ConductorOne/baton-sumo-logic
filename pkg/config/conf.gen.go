@@ -8,6 +8,7 @@ type SumoLogic struct {
 	ApiAccessId string `mapstructure:"api-access-id"`
 	ApiAccessKey string `mapstructure:"api-access-key"`
 	IncludeServiceAccounts bool `mapstructure:"include-service-accounts"`
+	DeactivatedRoleName string `mapstructure:"deactivated-role-name"`
 }
 
 func (c* SumoLogic) findFieldByTag(tagValue string) (any, bool) {

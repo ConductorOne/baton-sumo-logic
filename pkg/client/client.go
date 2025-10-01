@@ -254,3 +254,34 @@ func (c *Client) deleteUser(ctx context.Context, userId string) (
 
 	return rateLimit, nil
 }
+
+// SearchRoleByName retrieves a role by its display name using the `name` query parameter. Returns the first match.
+func (c *Client) SearchRoleByName(ctx context.Context, roleName string) (*RoleResponse, *v2.RateLimitDescription, error) {
+	if roleName == "" {
+		return nil, nil, fmt.Errorf("role name cannot be empty")
+	}
+
+	// API Doc: https://api.sumologic.com/docs/#operation/listRoles
+	path := "/api/{{.apiVersion}}/roles"
+	pathParameters := map[string]string{"apiVersion": apiVersion}
+	queryParams := map[string]string{"name": roleName}
+
+	var response ApiResponse[RoleResponse]
+
+	pageSize := uint(resourcePageSize)
+	url, err := c.constructURL(path, pathParameters, queryParams, nil, &pageSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating role search URL: %w", err)
+	}
+
+	rateLimit, err := c.get(ctx, url, &response)
+	if err != nil {
+		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	if len(response.Data) == 0 {
+		return nil, rateLimit, fmt.Errorf("no role found with name '%s'", roleName)
+	}
+
+	return response.Data[0], rateLimit, nil
+}

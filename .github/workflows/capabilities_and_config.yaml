@@ -29,8 +29,9 @@ jobs:
 
       - name: Run and save capabilities output
         env:
-          BATON_API_ACCESS_ID: "test-id"
-          BATON_API_ACCESS_KEY: "test-secret"
+          BATON_API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          BATON_API_ACCESS_ID: ${{ secrets.API_ACCESS_ID }}
+          BATON_API_ACCESS_KEY: ${{ secrets.API_ACCESS_KEY }}
         run: ./connector capabilities > baton_capabilities.json
 
       - name: Commit changes

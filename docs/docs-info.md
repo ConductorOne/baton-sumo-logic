@@ -25,6 +25,7 @@ The following credentials and configuration are required:
 - API Access ID (Required)
 - API Access Key (Required)
 - Include Service Accounts flag (Optional, defaults to true)
+- Deactivated Role Name (Optional) – Display name of the low-privilege role that should be automatically assigned to a user when their last role is revoked during provisioning operations (Default is Analyst)
 
 2. For each item in the list above: 
 
