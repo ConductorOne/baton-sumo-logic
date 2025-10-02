@@ -43,7 +43,9 @@ var (
 	minimalAccessRoleNameField = field.StringField(
 		"minimal-access-role-name",
 		field.WithDisplayName("Minimal access role name"),
-		field.WithDescription("Name of the least-privileged role that will be assigned to users when their last role is revoked. Should correspond to a minimal-access role in Sumo Logic (e.g., 'Analyst')."),
+		field.WithDescription(
+			"Name of the least-privileged role assigned to a user when their last role is revoked. "+
+				"Should correspond to a minimal-access role in Sumo Logic (e.g., 'Analyst')."),
 		field.WithRequired(false),
 		field.WithDefaultValue("Analyst"),
 	)
