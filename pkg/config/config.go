@@ -40,10 +40,10 @@ var (
 		field.WithDescription("Whether to include service accounts in the connector."),
 		field.WithDefaultValue(true),
 	)
-	deactivatedRoleNameField = field.StringField(
-		"deactivated-role-name",
-		field.WithDisplayName("Deactivated role name"),
-		field.WithDescription("Name of the role with the lowest level of privileges that will be assigned to users when their last role is revoked."),
+	minimalAccessRoleNameField = field.StringField(
+		"minimal-access-role-name",
+		field.WithDisplayName("Minimal access role name"),
+		field.WithDescription("Name of the least-privileged role that will be assigned to users when their last role is revoked. Should correspond to a minimal-access role in Sumo Logic (e.g., 'Analyst')."),
 		field.WithRequired(false),
 		field.WithDefaultValue("Analyst"),
 	)
@@ -56,7 +56,7 @@ var (
 		apiAccessIDField,
 		apiAccessKeyField,
 		includeServiceAccountsField,
-		deactivatedRoleNameField,
+		minimalAccessRoleNameField,
 	}
 
 	// FieldRelationships defines relationships between the fields listed in

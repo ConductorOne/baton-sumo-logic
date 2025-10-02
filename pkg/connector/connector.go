@@ -14,14 +14,14 @@ import (
 type Connector struct {
 	client                 *client.Client
 	includeServiceAccounts bool
-	deactivatedRoleName    string
+	minimalAccessRoleName  string
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
 		newUserBuilder(d.client, d.includeServiceAccounts),
-		newRoleBuilder(d.client, d.deactivatedRoleName),
+		newRoleBuilder(d.client, d.minimalAccessRoleName),
 	}
 }
 
@@ -86,11 +86,11 @@ func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error)
 // Validate is called to ensure that the connector is properly configured. It should exercise any API credentials
 // to be sure that they are valid.
 func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, error) {
-	// If a deactivated role name is configured, ensure it exists in Sumo Logic.
-	if d.deactivatedRoleName != "" {
-		_, _, err := d.client.SearchRoleByName(ctx, d.deactivatedRoleName)
+	// If a minimal access role name is configured, ensure it exists in Sumo Logic.
+	if d.minimalAccessRoleName != "" {
+		_, _, err := d.client.SearchRoleByName(ctx, d.minimalAccessRoleName)
 		if err != nil {
-			return nil, fmt.Errorf("baton-sumo-logic: failed to validate deactivated role '%s': %w", d.deactivatedRoleName, err)
+			return nil, fmt.Errorf("baton-sumo-logic: failed to validate minimal access role '%s': %w", d.minimalAccessRoleName, err)
 		}
 	}
 
@@ -98,11 +98,11 @@ func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, erro
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, apiBaseURL, apiAccessID, apiAccessKey string, includeServiceAccounts bool, deactivatedRoleName string) (*Connector, error) {
+func New(ctx context.Context, apiBaseURL, apiAccessID, apiAccessKey string, includeServiceAccounts bool, minimalAccessRoleName string) (*Connector, error) {
 	client, err := client.NewClient(ctx, apiBaseURL, apiAccessID, apiAccessKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Connector{client: client, includeServiceAccounts: includeServiceAccounts, deactivatedRoleName: deactivatedRoleName}, nil
+	return &Connector{client: client, includeServiceAccounts: includeServiceAccounts, minimalAccessRoleName: minimalAccessRoleName}, nil
 }
