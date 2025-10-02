@@ -48,7 +48,7 @@ func getConnector(ctx context.Context, slc *cfg.SumoLogic) (types.ConnectorServe
 		return nil, err
 	}
 
-	cb, err := connector.New(ctx, slc.ApiBaseUrl, slc.ApiAccessId, slc.ApiAccessKey, slc.IncludeServiceAccounts, slc.DeactivatedRoleName)
+	cb, err := connector.New(ctx, slc.ApiBaseUrl, slc.ApiAccessId, slc.ApiAccessKey, slc.IncludeServiceAccounts, slc.MinimalAccessRoleName)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err

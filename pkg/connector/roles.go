@@ -18,8 +18,8 @@ import (
 const roleAssignmentEntitlement = "assigned"
 
 type roleBuilder struct {
-	service             client.ClientService
-	deactivatedRoleName string
+	service               client.ClientService
+	minimalAccessRoleName string
 }
 
 func (o *roleBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -149,27 +149,27 @@ func (o *roleBuilder) Revoke(
 		return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to fetch user before revocation: %w", err)
 	}
 
-	// If this is the user's only role, first assign the deactivated role (if configured)
+	// If this is the user's only role, first assign the minimal access role (if configured)
 	if len(user.RoleIDs) == 1 && user.RoleIDs[0] == grant.Entitlement.Resource.Id.Resource {
-		if o.deactivatedRoleName != "" {
-			role, rlSearch, errSearch := o.service.SearchRoleByName(ctx, o.deactivatedRoleName)
+		if o.minimalAccessRoleName != "" {
+			role, rlSearch, errSearch := o.service.SearchRoleByName(ctx, o.minimalAccessRoleName)
 			outputAnnotations.WithRateLimiting(rlSearch)
 			if errSearch != nil {
-				return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to find deactivated role: %w", errSearch)
+				return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to list minimal access role: %w", errSearch)
 			}
 
-			deactivatedRoleID := role.ID
-			if deactivatedRoleID != "" && deactivatedRoleID != grant.Entitlement.Resource.Id.Resource {
-				_, rlAssign, errAssign := o.service.AssignRoleToUser(ctx, deactivatedRoleID, user.ID)
+			minimalAccessRoleID := role.ID
+			if minimalAccessRoleID != "" && minimalAccessRoleID != grant.Entitlement.Resource.Id.Resource {
+				_, rlAssign, errAssign := o.service.AssignRoleToUser(ctx, minimalAccessRoleID, user.ID)
 				outputAnnotations.WithRateLimiting(rlAssign)
 				if errAssign != nil {
-					return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to assign deactivated role to user: %w", errAssign)
+					return outputAnnotations, fmt.Errorf("baton-sumo-logic: failed to assign minimal access role to user: %w", errAssign)
 				}
 			} else {
 				return outputAnnotations, fmt.Errorf("baton-sumo-logic: cannot revoke user's only role")
 			}
 		} else {
-			// Deactivated role not configured; skip revocation to avoid validation error
+			// Minimal access role not configured; skip revocation to avoid validation error
 			return outputAnnotations, fmt.Errorf("baton-sumo-logic: cannot revoke user's only role")
 		}
 	}
@@ -190,10 +190,10 @@ func (o *roleBuilder) Revoke(
 	return outputAnnotations, nil
 }
 
-func newRoleBuilder(cclient *client.Client, deactivatedRoleName string) *roleBuilder {
+func newRoleBuilder(cclient *client.Client, minimalAccessRoleName string) *roleBuilder {
 	return &roleBuilder{
-		service:             client.NewClientService(cclient),
-		deactivatedRoleName: deactivatedRoleName,
+		service:               client.NewClientService(cclient),
+		minimalAccessRoleName: minimalAccessRoleName,
 	}
 }
 

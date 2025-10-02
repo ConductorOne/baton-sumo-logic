@@ -20,7 +20,7 @@ func newTestRoleBuilder() (*roleBuilder, *client.MockClientService) {
 	mockClient := &client.Client{}
 	mockClientService := &client.MockClientService{}
 
-	builder := newRoleBuilder(mockClient, "deactivated-role")
+	builder := newRoleBuilder(mockClient, "minimal-access-role")
 	// Replace the service with our mock.
 	builder.service = mockClientService
 
@@ -263,5 +263,46 @@ func TestRoleGrantAndRevoke(t *testing.T) {
 		// Verify the error.
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "baton-sumo-logic: only users can be revoked from a role")
+	})
+
+	t.Run("Revoke edge case: user's only role equals minimal access role", func(t *testing.T) {
+		// Create role builder with minimal access name matching the role we will revoke.
+		roleBuilder, mockService := newTestRoleBuilder()
+
+		// Override minimalAccessRoleName to match the role ID that will be revoked.
+		roleBuilder.minimalAccessRoleName = "sole-role"
+
+		// Mock user has only this role.
+		mockService.GetUserByIDFunc = func(ctx context.Context, userId string) (*client.Account, *v2.RateLimitDescription, error) {
+			return &client.Account{
+				ID:      userId,
+				RoleIDs: []string{"sole-role"},
+			}, nil, nil
+		}
+
+		// Mock search returns a role whose ID equals the role being revoked.
+		mockService.SearchRoleByNameFunc = func(ctx context.Context, roleName string) (*client.RoleResponse, *v2.RateLimitDescription, error) {
+			return &client.RoleResponse{ID: "sole-role"}, nil, nil
+		}
+
+		principal := &v2.Resource{
+			Id: &v2.ResourceId{
+				ResourceType: userResourceType.Id,
+				Resource:     "test-user",
+			},
+		}
+
+		entitlement := &v2.Entitlement{
+			Resource: &v2.Resource{
+				Id: &v2.ResourceId{Resource: "sole-role"},
+			},
+		}
+
+		grant := &v2.Grant{Principal: principal, Entitlement: entitlement}
+
+		_, err := roleBuilder.Revoke(context.Background(), grant)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot revoke user's only role")
 	})
 }
