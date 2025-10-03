@@ -9,6 +9,7 @@ import (
 type MockClientService struct {
 	GetUserByIDFunc        func(ctx context.Context, userId string) (*Account, *v2.RateLimitDescription, error)
 	CreateUserFunc         func(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error)
+	UpdateUserFunc         func(ctx context.Context, userId string, userRequest UserUpdateRequest) (*Account, *v2.RateLimitDescription, error)
 	DeleteUserFunc         func(ctx context.Context, userId string) (*v2.RateLimitDescription, error)
 	GetUsersFunc           func(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*Account, *string, *v2.RateLimitDescription, error)
 	GetRolesFunc           func(ctx context.Context, pageToken *string) ([]*RoleResponse, *string, *v2.RateLimitDescription, error)
@@ -24,6 +25,10 @@ func (m *MockClientService) GetUserByID(ctx context.Context, userId string) (*Ac
 
 func (m *MockClientService) CreateUser(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error) {
 	return m.CreateUserFunc(ctx, userRequest)
+}
+
+func (m *MockClientService) UpdateUser(ctx context.Context, userId string, userRequest UserUpdateRequest) (*Account, *v2.RateLimitDescription, error) {
+	return m.UpdateUserFunc(ctx, userId, userRequest)
 }
 
 func (m *MockClientService) DeleteUser(ctx context.Context, userId string) (*v2.RateLimitDescription, error) {

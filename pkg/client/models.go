@@ -87,3 +87,11 @@ type UserRequest struct {
 	Email     string   `json:"email"`
 	RoleIDs   []string `json:"roleIds"`
 }
+
+type UserUpdateRequest struct {
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email,omitempty"`
+	RoleIDs   []string `json:"roleIds,omitempty"`
+	IsActive  *bool    `json:"isActive,omitempty"`
+}

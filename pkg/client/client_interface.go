@@ -11,6 +11,7 @@ type ClientService interface {
 	GetUserByID(ctx context.Context, userId string) (*Account, *v2.RateLimitDescription, error)
 	GetUsers(ctx context.Context, pageToken *string, includeServiceAccounts bool) ([]*Account, *string, *v2.RateLimitDescription, error)
 	CreateUser(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error)
+	UpdateUser(ctx context.Context, userId string, userRequest UserUpdateRequest) (*Account, *v2.RateLimitDescription, error)
 	DeleteUser(ctx context.Context, userId string) (*v2.RateLimitDescription, error)
 	GetRoles(ctx context.Context, pageToken *string) ([]*RoleResponse, *string, *v2.RateLimitDescription, error)
 	GetRole(ctx context.Context, roleId string) (*RoleResponse, *v2.RateLimitDescription, error)
@@ -34,6 +35,10 @@ func (s *ClientServiceImpl) GetUserByID(ctx context.Context, userId string) (*Ac
 
 func (s *ClientServiceImpl) CreateUser(ctx context.Context, userRequest UserRequest) (*Account, *v2.RateLimitDescription, error) {
 	return s.client.createUser(ctx, userRequest)
+}
+
+func (s *ClientServiceImpl) UpdateUser(ctx context.Context, userId string, userRequest UserUpdateRequest) (*Account, *v2.RateLimitDescription, error) {
+	return s.client.updateUser(ctx, userId, userRequest)
 }
 
 func (s *ClientServiceImpl) DeleteUser(ctx context.Context, userId string) (*v2.RateLimitDescription, error) {
