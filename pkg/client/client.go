@@ -16,7 +16,7 @@ const (
 	resourcePageSize = 1000 // API: Default value is 100 and the range is 1-1000.
 
 	// userByIDPath is the API path template for user operations by ID.
-	// Used by: getUserByID, deleteUser, updateUser
+	// Used by: getUserByID, deleteUser, updateUser.
 	// API Docs: https://api.sumologic.com/docs/#operation/getUser
 	//           https://api.sumologic.com/docs/#operation/updateUser
 	//           https://api.sumologic.com/docs/#operation/deleteUser
@@ -307,9 +307,6 @@ func (c *Client) updateUser(ctx context.Context, userId string, userRequest User
 	payload := map[string]interface{}{}
 	payload["firstName"] = userRequest.FirstName
 	payload["lastName"] = userRequest.LastName
-	if userRequest.Email != "" {
-		payload["email"] = userRequest.Email
-	}
 	if userRequest.RoleIDs != nil {
 		payload["roleIds"] = userRequest.RoleIDs
 	}
