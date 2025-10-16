@@ -14,6 +14,13 @@ import (
 const (
 	apiVersion       = "v1"
 	resourcePageSize = 1000 // API: Default value is 100 and the range is 1-1000.
+
+	// userByIDPath is the API path template for user operations by ID.
+	// Used by: getUserByID, deleteUser, updateUser.
+	// API Docs: https://api.sumologic.com/docs/#operation/getUser
+	//           https://api.sumologic.com/docs/#operation/updateUser
+	//           https://api.sumologic.com/docs/#operation/deleteUser
+	userByIDPath = "/api/{{.apiVersion}}/users/{{.userID}}"
 )
 
 type Client struct {
@@ -187,10 +194,9 @@ func (c *Client) getUserByID(ctx context.Context, userId string) (
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/getUser
-	path := "/api/{{.apiVersion}}/users/{{.userID}}"
 	pathParameters := map[string]string{"apiVersion": apiVersion, "userID": userId}
 
-	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	url, err := c.constructURL(userByIDPath, pathParameters, nil, nil, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error generating get user by ID URL: %w", err)
 	}
@@ -239,10 +245,9 @@ func (c *Client) deleteUser(ctx context.Context, userId string) (
 	error,
 ) {
 	// API Doc: https://api.sumologic.com/docs/#operation/deleteUser
-	path := "/api/{{.apiVersion}}/users/{{.userID}}"
 	pathParameters := map[string]string{"apiVersion": apiVersion, "userID": userId}
 
-	url, err := c.constructURL(path, pathParameters, nil, nil, nil)
+	url, err := c.constructURL(userByIDPath, pathParameters, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error generating delete user URL: %w", err)
 	}
@@ -284,4 +289,36 @@ func (c *Client) SearchRoleByName(ctx context.Context, roleName string) (*RoleRe
 	}
 
 	return response.Data[0], rateLimit, nil
+}
+
+func (c *Client) updateUser(ctx context.Context, userId string, userRequest UserUpdateRequest) (
+	*Account,
+	*v2.RateLimitDescription,
+	error,
+) {
+	// API Doc: https://api.sumologic.com/docs/#operation/updateUser
+	pathParameters := map[string]string{"apiVersion": apiVersion, "userID": userId}
+
+	url, err := c.constructURL(userByIDPath, pathParameters, nil, nil, nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating update user URL: %w", err)
+	}
+
+	payload := map[string]interface{}{}
+	payload["firstName"] = userRequest.FirstName
+	payload["lastName"] = userRequest.LastName
+	if userRequest.RoleIDs != nil {
+		payload["roleIds"] = userRequest.RoleIDs
+	}
+	if userRequest.IsActive != nil {
+		payload["isActive"] = *userRequest.IsActive
+	}
+
+	var response Account
+	rateLimit, err := c.putWithPayload(ctx, url, &response, payload)
+	if err != nil {
+		return nil, rateLimit, fmt.Errorf("error executing request: %w", err)
+	}
+
+	return &response, rateLimit, nil
 }

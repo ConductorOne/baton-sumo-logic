@@ -63,6 +63,24 @@ func (c *Client) put(
 	)
 }
 
+func (c *Client) putWithPayload(
+	ctx context.Context,
+	url *url.URL,
+	target interface{},
+	payload map[string]interface{},
+) (
+	*v2.RateLimitDescription,
+	error,
+) {
+	return c.doRequest(
+		ctx,
+		http.MethodPut,
+		url,
+		target,
+		uhttp.WithJSONBody(payload),
+	)
+}
+
 func (c *Client) delete(
 	ctx context.Context,
 	url *url.URL,
