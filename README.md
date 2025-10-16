@@ -70,6 +70,7 @@ baton resources
 ### Provisioning Capabilities
 - User account management (create and delete)
 - Role assignments (grant and revoke role memberships)
+- Account enable/disable actions (enable and disable user accounts)
 
 Note: Service account syncing can be optionally disabled using the `include-service-accounts` configuration parameter.
 

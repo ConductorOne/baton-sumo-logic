@@ -15,6 +15,7 @@ Note: Service account syncing can be optionally disabled using the `include-serv
 Yes, the connector supports provisioning capabilities for:
 - User accounts (create and delete)
 - Role assignments (granting and revoking role memberships to users)
+- Account enable/disable actions (enabling and disabling user accounts)
 
 ## Connector credentials 
 
