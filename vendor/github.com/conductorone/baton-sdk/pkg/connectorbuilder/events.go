@@ -31,6 +31,10 @@ type EventProvider interface {
 // This is the recommended interface for implementing event feed support in new connectors.
 type EventProviderV2 interface {
 	ConnectorBuilder
+	EventFeedsLimited
+}
+
+type EventFeedsLimited interface {
 	EventFeeds(ctx context.Context) []EventFeed
 }
 
@@ -39,16 +43,26 @@ type EventProviderV2 interface {
 // EventFeedMetadata describes this feed, and a connector can have multiple feeds.
 type EventFeed interface {
 	EventLister
-	EventFeedMetadata(ctx context.Context) *v2.EventFeedMetadata
+	EventFeedLimited
 }
 
-type oldEventFeedWrapper struct {
-	feed EventLister
+type EventFeedLimited interface {
+	EventFeedMetadata(ctx context.Context) *v2.EventFeedMetadata
 }
 
 // Compatibility interface lets us handle both EventFeed and EventProvider the same.
 type EventLister interface {
 	ListEvents(ctx context.Context, earliestEvent *timestamppb.Timestamp, pToken *pagination.StreamToken) ([]*v2.Event, *pagination.StreamState, annotations.Annotations, error)
+}
+
+func newEventFeedV1to2(eventFeed EventLister) EventFeed {
+	return &oldEventFeedWrapper{
+		feed: eventFeed,
+	}
+}
+
+type oldEventFeedWrapper struct {
+	feed EventLister
 }
 
 func (e *oldEventFeedWrapper) EventFeedMetadata(ctx context.Context) *v2.EventFeedMetadata {
@@ -66,8 +80,8 @@ func (e *oldEventFeedWrapper) ListEvents(
 	return e.feed.ListEvents(ctx, earliestEvent, pToken)
 }
 
-func (b *builderImpl) ListEventFeeds(ctx context.Context, request *v2.ListEventFeedsRequest) (*v2.ListEventFeedsResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.ListEventFeeds")
+func (b *builder) ListEventFeeds(ctx context.Context, request *v2.ListEventFeedsRequest) (*v2.ListEventFeedsResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.ListEventFeeds")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -85,8 +99,8 @@ func (b *builderImpl) ListEventFeeds(ctx context.Context, request *v2.ListEventF
 	}, nil
 }
 
-func (b *builderImpl) ListEvents(ctx context.Context, request *v2.ListEventsRequest) (*v2.ListEventsResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.ListEvents")
+func (b *builder) ListEvents(ctx context.Context, request *v2.ListEventsRequest) (*v2.ListEventsResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.ListEvents")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -118,4 +132,32 @@ func (b *builderImpl) ListEvents(ctx context.Context, request *v2.ListEventsRequ
 		HasMore:     streamState.HasMore,
 		Annotations: annotations,
 	}, nil
+}
+
+func (b *builder) addEventFeed(ctx context.Context, in interface{}) error {
+	if ep, ok := in.(EventFeedsLimited); ok {
+		for _, ef := range ep.EventFeeds(ctx) {
+			feedData := ef.EventFeedMetadata(ctx)
+			if feedData == nil {
+				return fmt.Errorf("error: event feed metadata is nil")
+			}
+			if err := feedData.Validate(); err != nil {
+				return fmt.Errorf("error: event feed metadata for %s is invalid: %w", feedData.Id, err)
+			}
+			if _, ok := b.eventFeeds[feedData.Id]; ok {
+				return fmt.Errorf("error: duplicate event feed id found: %s", feedData.Id)
+			}
+			b.eventFeeds[feedData.Id] = ef
+		}
+	}
+
+	if ep, ok := in.(EventLister); ok {
+		// Register the legacy Baton feed as a v2 event feed
+		// implementing both v1 and v2 event feeds is not supported.
+		if len(b.eventFeeds) != 0 {
+			return fmt.Errorf("error: using legacy event feed is not supported when using EventProviderV2")
+		}
+		b.eventFeeds[LegacyBatonFeedId] = newEventFeedV1to2(ep)
+	}
+	return nil
 }
