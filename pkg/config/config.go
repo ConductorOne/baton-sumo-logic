@@ -47,7 +47,6 @@ var (
 			"Name of the least-privileged role assigned to a user when their last role is revoked. "+
 				"Should correspond to a minimal-access role in Sumo Logic (e.g., 'Analyst')."),
 		field.WithRequired(false),
-		field.WithDefaultValue("Analyst"),
 	)
 
 	// ConfigurationFields defines the external configuration required for the
