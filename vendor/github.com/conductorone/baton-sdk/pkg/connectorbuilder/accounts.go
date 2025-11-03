@@ -30,6 +30,10 @@ type CreateAccountResponse interface {
 // represents users or accounts that can be provisioned.
 type AccountManager interface {
 	ResourceSyncer
+	AccountManagerLimited
+}
+
+type AccountManagerLimited interface {
 	CreateAccount(ctx context.Context,
 		accountInfo *v2.AccountInfo,
 		credentialOptions *v2.LocalCredentialOptions) (CreateAccountResponse, []*v2.PlaintextData, annotations.Annotations, error)
@@ -37,13 +41,14 @@ type AccountManager interface {
 }
 
 type OldAccountManager interface {
+	ResourceSyncer
 	CreateAccount(ctx context.Context,
 		accountInfo *v2.AccountInfo,
 		credentialOptions *v2.CredentialOptions) (CreateAccountResponse, []*v2.PlaintextData, annotations.Annotations, error)
 }
 
-func (b *builderImpl) CreateAccount(ctx context.Context, request *v2.CreateAccountRequest) (*v2.CreateAccountResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.CreateAccount")
+func (b *builder) CreateAccount(ctx context.Context, request *v2.CreateAccountRequest) (*v2.CreateAccountResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.CreateAccount")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -52,7 +57,7 @@ func (b *builderImpl) CreateAccount(ctx context.Context, request *v2.CreateAccou
 	if b.accountManager == nil {
 		l.Error("error: connector does not have account manager configured")
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
-		return nil, status.Error(codes.Unimplemented, "connector does not have credential manager configured")
+		return nil, status.Error(codes.Unimplemented, "connector does not have account manager configured")
 	}
 
 	opts, err := crypto.ConvertCredentialOptions(ctx, b.clientSecret, request.GetCredentialOptions(), request.GetEncryptionConfigs())
@@ -86,16 +91,16 @@ func (b *builderImpl) CreateAccount(ctx context.Context, request *v2.CreateAccou
 		encryptedDatas = append(encryptedDatas, encryptedData...)
 	}
 
-	rv := &v2.CreateAccountResponse{
+	rv := v2.CreateAccountResponse_builder{
 		EncryptedData: encryptedDatas,
 		Annotations:   annos,
-	}
+	}.Build()
 
 	switch r := result.(type) {
 	case *v2.CreateAccountResponse_SuccessResult:
-		rv.Result = &v2.CreateAccountResponse_Success{Success: r}
+		rv.SetSuccess(proto.ValueOrDefault(r))
 	case *v2.CreateAccountResponse_ActionRequiredResult:
-		rv.Result = &v2.CreateAccountResponse_ActionRequired{ActionRequired: r}
+		rv.SetActionRequired(proto.ValueOrDefault(r))
 	default:
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return nil, status.Error(codes.Unimplemented, fmt.Sprintf("unknown result type: %T", result))
@@ -103,4 +108,20 @@ func (b *builderImpl) CreateAccount(ctx context.Context, request *v2.CreateAccou
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
 	return rv, nil
+}
+
+func (b *builder) addAccountManager(_ context.Context, typeId string, in interface{}) error {
+	if _, ok := in.(OldAccountManager); ok {
+		return fmt.Errorf("error: old account manager interface implemented for %s", typeId)
+	}
+
+	if accountManager, ok := in.(AccountManagerLimited); ok {
+		// NOTE(kans): currently unused - but these should probably be (resource) typed
+		b.accountManagers[typeId] = accountManager
+		if b.accountManager != nil {
+			return fmt.Errorf("error: duplicate resource type found for account manager %s", typeId)
+		}
+		b.accountManager = accountManager
+	}
+	return nil
 }
