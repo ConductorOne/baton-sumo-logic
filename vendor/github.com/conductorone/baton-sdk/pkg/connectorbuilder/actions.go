@@ -29,11 +29,15 @@ type CustomActionManager interface {
 // It provides a mechanism to register a CustomActionManager with the connector.
 type RegisterActionManager interface {
 	ConnectorBuilder
+	RegisterActionManagerLimited
+}
+
+type RegisterActionManagerLimited interface {
 	RegisterActionManager(ctx context.Context) (CustomActionManager, error)
 }
 
-func (b *builderImpl) ListActionSchemas(ctx context.Context, request *v2.ListActionSchemasRequest) (*v2.ListActionSchemasResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.ListActionSchemas")
+func (b *builder) ListActionSchemas(ctx context.Context, request *v2.ListActionSchemasRequest) (*v2.ListActionSchemasResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.ListActionSchemas")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -49,17 +53,17 @@ func (b *builderImpl) ListActionSchemas(ctx context.Context, request *v2.ListAct
 		return nil, fmt.Errorf("error: listing action schemas failed: %w", err)
 	}
 
-	rv := &v2.ListActionSchemasResponse{
+	rv := v2.ListActionSchemasResponse_builder{
 		Schemas:     actionSchemas,
 		Annotations: annos,
-	}
+	}.Build()
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
 	return rv, nil
 }
 
-func (b *builderImpl) GetActionSchema(ctx context.Context, request *v2.GetActionSchemaRequest) (*v2.GetActionSchemaResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.GetActionSchema")
+func (b *builder) GetActionSchema(ctx context.Context, request *v2.GetActionSchemaRequest) (*v2.GetActionSchemaResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.GetActionSchema")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -75,17 +79,17 @@ func (b *builderImpl) GetActionSchema(ctx context.Context, request *v2.GetAction
 		return nil, fmt.Errorf("error: getting action schema failed: %w", err)
 	}
 
-	rv := &v2.GetActionSchemaResponse{
+	rv := v2.GetActionSchemaResponse_builder{
 		Schema:      actionSchema,
 		Annotations: annos,
-	}
+	}.Build()
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
 	return rv, nil
 }
 
-func (b *builderImpl) InvokeAction(ctx context.Context, request *v2.InvokeActionRequest) (*v2.InvokeActionResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.InvokeAction")
+func (b *builder) InvokeAction(ctx context.Context, request *v2.InvokeActionRequest) (*v2.InvokeActionResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.InvokeAction")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -101,20 +105,20 @@ func (b *builderImpl) InvokeAction(ctx context.Context, request *v2.InvokeAction
 		return nil, fmt.Errorf("error: invoking action failed: %w", err)
 	}
 
-	rv := &v2.InvokeActionResponse{
+	rv := v2.InvokeActionResponse_builder{
 		Id:          id,
 		Name:        request.GetName(),
 		Status:      status,
 		Annotations: annos,
 		Response:    resp,
-	}
+	}.Build()
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
 	return rv, nil
 }
 
-func (b *builderImpl) GetActionStatus(ctx context.Context, request *v2.GetActionStatusRequest) (*v2.GetActionStatusResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.GetActionStatus")
+func (b *builder) GetActionStatus(ctx context.Context, request *v2.GetActionStatusRequest) (*v2.GetActionStatusResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.GetActionStatus")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -130,14 +134,38 @@ func (b *builderImpl) GetActionStatus(ctx context.Context, request *v2.GetAction
 		return nil, fmt.Errorf("error: getting action status failed: %w", err)
 	}
 
-	resp := &v2.GetActionStatusResponse{
+	resp := v2.GetActionStatusResponse_builder{
 		Id:          request.GetId(),
 		Name:        name,
 		Status:      status,
 		Annotations: annos,
 		Response:    rv,
-	}
+	}.Build()
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
 	return resp, nil
+}
+
+func (b *builder) addActionManager(ctx context.Context, in interface{}) error {
+	if actionManager, ok := in.(CustomActionManager); ok {
+		if b.actionManager != nil {
+			return fmt.Errorf("error: cannot set multiple action managers")
+		}
+		b.actionManager = actionManager
+	}
+
+	if registerActionManager, ok := in.(RegisterActionManagerLimited); ok {
+		if b.actionManager != nil {
+			return fmt.Errorf("error: cannot register multiple action managers")
+		}
+		actionManager, err := registerActionManager.RegisterActionManager(ctx)
+		if err != nil {
+			return fmt.Errorf("error: registering action manager failed: %w", err)
+		}
+		if actionManager == nil {
+			return fmt.Errorf("error: action manager is nil")
+		}
+		b.actionManager = actionManager
+	}
+	return nil
 }
