@@ -18,6 +18,10 @@ import (
 // ticketing system, allowing Baton to create and track tickets in that system.
 type TicketManager interface {
 	ConnectorBuilder
+	TicketManagerLimited
+}
+
+type TicketManagerLimited interface {
 	GetTicket(ctx context.Context, ticketId string) (*v2.Ticket, annotations.Annotations, error)
 	CreateTicket(ctx context.Context, ticket *v2.Ticket, schema *v2.TicketSchema) (*v2.Ticket, annotations.Annotations, error)
 	GetTicketSchema(ctx context.Context, schemaID string) (*v2.TicketSchema, annotations.Annotations, error)
@@ -26,8 +30,8 @@ type TicketManager interface {
 	BulkGetTickets(context.Context, *v2.TicketsServiceBulkGetTicketsRequest) (*v2.TicketsServiceBulkGetTicketsResponse, error)
 }
 
-func (b *builderImpl) BulkCreateTickets(ctx context.Context, request *v2.TicketsServiceBulkCreateTicketsRequest) (*v2.TicketsServiceBulkCreateTicketsResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.BulkCreateTickets")
+func (b *builder) BulkCreateTickets(ctx context.Context, request *v2.TicketsServiceBulkCreateTicketsRequest) (*v2.TicketsServiceBulkCreateTicketsResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.BulkCreateTickets")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -50,13 +54,13 @@ func (b *builderImpl) BulkCreateTickets(ctx context.Context, request *v2.Tickets
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.TicketsServiceBulkCreateTicketsResponse{
+	return v2.TicketsServiceBulkCreateTicketsResponse_builder{
 		Tickets: ticketsResponse.GetTickets(),
-	}, nil
+	}.Build(), nil
 }
 
-func (b *builderImpl) BulkGetTickets(ctx context.Context, request *v2.TicketsServiceBulkGetTicketsRequest) (*v2.TicketsServiceBulkGetTicketsResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.BulkGetTickets")
+func (b *builder) BulkGetTickets(ctx context.Context, request *v2.TicketsServiceBulkGetTicketsRequest) (*v2.TicketsServiceBulkGetTicketsResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.BulkGetTickets")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -79,13 +83,13 @@ func (b *builderImpl) BulkGetTickets(ctx context.Context, request *v2.TicketsSer
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.TicketsServiceBulkGetTicketsResponse{
+	return v2.TicketsServiceBulkGetTicketsResponse_builder{
 		Tickets: ticketsResponse.GetTickets(),
-	}, nil
+	}.Build(), nil
 }
 
-func (b *builderImpl) ListTicketSchemas(ctx context.Context, request *v2.TicketsServiceListTicketSchemasRequest) (*v2.TicketsServiceListTicketSchemasResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.ListTicketSchemas")
+func (b *builder) ListTicketSchemas(ctx context.Context, request *v2.TicketsServiceListTicketSchemasRequest) (*v2.TicketsServiceListTicketSchemasResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.ListTicketSchemas")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -103,21 +107,21 @@ func (b *builderImpl) ListTicketSchemas(ctx context.Context, request *v2.Tickets
 
 	for {
 		out, nextPageToken, annos, err := b.ticketManager.ListTicketSchemas(ctx, &pagination.Token{
-			Size:  int(request.PageSize),
-			Token: request.PageToken,
+			Size:  int(request.GetPageSize()),
+			Token: request.GetPageToken(),
 		})
 		if err == nil {
-			if request.PageToken != "" && request.PageToken == nextPageToken {
+			if request.GetPageToken() != "" && request.GetPageToken() == nextPageToken {
 				b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 				return nil, fmt.Errorf("error: listing ticket schemas failed: next page token is the same as the current page token. this is most likely a connector bug")
 			}
 
 			b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-			return &v2.TicketsServiceListTicketSchemasResponse{
+			return v2.TicketsServiceListTicketSchemasResponse_builder{
 				List:          out,
 				NextPageToken: nextPageToken,
 				Annotations:   annos,
-			}, nil
+			}.Build(), nil
 		}
 		if retryer.ShouldWaitAndRetry(ctx, err) {
 			continue
@@ -127,8 +131,8 @@ func (b *builderImpl) ListTicketSchemas(ctx context.Context, request *v2.Tickets
 	}
 }
 
-func (b *builderImpl) CreateTicket(ctx context.Context, request *v2.TicketsServiceCreateTicketRequest) (*v2.TicketsServiceCreateTicketResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.CreateTicket")
+func (b *builder) CreateTicket(ctx context.Context, request *v2.TicketsServiceCreateTicketRequest) (*v2.TicketsServiceCreateTicketResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.CreateTicket")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -143,37 +147,37 @@ func (b *builderImpl) CreateTicket(ctx context.Context, request *v2.TicketsServi
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		return nil, fmt.Errorf("error: request body is nil")
 	}
-	cTicket := &v2.Ticket{
+	cTicket := v2.Ticket_builder{
 		DisplayName:  reqBody.GetDisplayName(),
 		Description:  reqBody.GetDescription(),
 		Status:       reqBody.GetStatus(),
 		Labels:       reqBody.GetLabels(),
 		CustomFields: reqBody.GetCustomFields(),
 		RequestedFor: reqBody.GetRequestedFor(),
-	}
+	}.Build()
 
 	ticket, annos, err := b.ticketManager.CreateTicket(ctx, cTicket, request.GetSchema())
 	var resp *v2.TicketsServiceCreateTicketResponse
 	if err != nil {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		if ticket != nil {
-			resp = &v2.TicketsServiceCreateTicketResponse{
+			resp = v2.TicketsServiceCreateTicketResponse_builder{
 				Ticket:      ticket,
 				Annotations: annos,
-			}
+			}.Build()
 		}
 		return resp, fmt.Errorf("error: creating ticket failed: %w", err)
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.TicketsServiceCreateTicketResponse{
+	return v2.TicketsServiceCreateTicketResponse_builder{
 		Ticket:      ticket,
 		Annotations: annos,
-	}, nil
+	}.Build(), nil
 }
 
-func (b *builderImpl) GetTicket(ctx context.Context, request *v2.TicketsServiceGetTicketRequest) (*v2.TicketsServiceGetTicketResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.GetTicket")
+func (b *builder) GetTicket(ctx context.Context, request *v2.TicketsServiceGetTicketRequest) (*v2.TicketsServiceGetTicketResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.GetTicket")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -188,23 +192,23 @@ func (b *builderImpl) GetTicket(ctx context.Context, request *v2.TicketsServiceG
 	if err != nil {
 		b.m.RecordTaskFailure(ctx, tt, b.nowFunc().Sub(start))
 		if ticket != nil {
-			resp = &v2.TicketsServiceGetTicketResponse{
+			resp = v2.TicketsServiceGetTicketResponse_builder{
 				Ticket:      ticket,
 				Annotations: annos,
-			}
+			}.Build()
 		}
 		return resp, fmt.Errorf("error: getting ticket failed: %w", err)
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.TicketsServiceGetTicketResponse{
+	return v2.TicketsServiceGetTicketResponse_builder{
 		Ticket:      ticket,
 		Annotations: annos,
-	}, nil
+	}.Build(), nil
 }
 
-func (b *builderImpl) GetTicketSchema(ctx context.Context, request *v2.TicketsServiceGetTicketSchemaRequest) (*v2.TicketsServiceGetTicketSchemaResponse, error) {
-	ctx, span := tracer.Start(ctx, "builderImpl.GetTicketSchema")
+func (b *builder) GetTicketSchema(ctx context.Context, request *v2.TicketsServiceGetTicketSchemaRequest) (*v2.TicketsServiceGetTicketSchemaResponse, error) {
+	ctx, span := tracer.Start(ctx, "builder.GetTicketSchema")
 	defer span.End()
 
 	start := b.nowFunc()
@@ -221,8 +225,18 @@ func (b *builderImpl) GetTicketSchema(ctx context.Context, request *v2.TicketsSe
 	}
 
 	b.m.RecordTaskSuccess(ctx, tt, b.nowFunc().Sub(start))
-	return &v2.TicketsServiceGetTicketSchemaResponse{
+	return v2.TicketsServiceGetTicketSchemaResponse_builder{
 		Schema:      ticketSchema,
 		Annotations: annos,
-	}, nil
+	}.Build(), nil
+}
+
+func (b *builder) addTicketManager(_ context.Context, in interface{}) error {
+	if ticketManager, ok := in.(TicketManagerLimited); ok {
+		if b.ticketManager != nil {
+			return fmt.Errorf("error: cannot set multiple ticket managers")
+		}
+		b.ticketManager = ticketManager
+	}
+	return nil
 }
