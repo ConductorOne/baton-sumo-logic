@@ -81,6 +81,18 @@
       }
     },
     {
+      "name": "http-timeout-seconds",
+      "description": "HTTP client timeout in seconds (max 1800)",
+      "isOps": true,
+      "intField": {
+        "defaultValue": "300",
+        "rules": {
+          "lte": "1800",
+          "gte": "1"
+        }
+      }
+    },
+    {
       "name": "api-base-url",
       "displayName": "API base URL",
       "description": "The Sumo Logic API base URL. Options include:\n- AU: https://api.au.sumologic.com\n- CA: https://api.ca.sumologic.com\n- DE: https://api.de.sumologic.com\n- EU: https://api.eu.sumologic.com\n- FED: https://api.fed.sumologic.com\n- IN: https://api.in.sumologic.com\n- JP: https://api.jp.sumologic.com\n- KR: https://api.kr.sumologic.com\n- US1 (default): https://api.sumologic.com\n- US2: https://api.us2.sumologic.com",
