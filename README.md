@@ -44,7 +44,7 @@ docker run --rm -v $(pwd):/out \
   -e BATON_API_BASE_URL=https://api.sumologic.com \
   -e BATON_API_ACCESS_ID=your-access-id \
   -e BATON_API_ACCESS_KEY=your-access-key \
-  ghcr.io/conductorone/baton-sumo-logic:latest -f "/out/sync.c1z"
+  public.ecr.aws/conductorone/baton-sumo-logic:latest -f "/out/sync.c1z"
 
 docker run --rm -v $(pwd):/out ghcr.io/conductorone/baton:latest -f "/out/sync.c1z" resources
 ```
