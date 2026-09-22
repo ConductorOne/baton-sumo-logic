@@ -1,0 +1,742 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sumo Logic API v1 (baton-sumo-logic surface)",
+    "version": "2026-09-22",
+    "description": "The subset of the Sumo Logic API that baton-sumo-logic calls. Scope is connector scope: nine operations, and only the response fields the connector's structs declare. Each client method cites its api.sumologic.com/docs operation; those are the sources (accessed 2026-09-22)."
+  },
+  "servers": [
+    {
+      "url": "https://api.sumologic.com",
+      "description": "US1 (default) deployment."
+    },
+    {
+      "url": "https://api.us2.sumologic.com",
+      "description": "US2 deployment."
+    },
+    {
+      "url": "https://api.au.sumologic.com",
+      "description": "AU deployment."
+    },
+    {
+      "url": "https://api.ca.sumologic.com",
+      "description": "CA deployment."
+    },
+    {
+      "url": "https://api.de.sumologic.com",
+      "description": "DE deployment."
+    },
+    {
+      "url": "https://api.eu.sumologic.com",
+      "description": "EU deployment."
+    },
+    {
+      "url": "https://api.fed.sumologic.com",
+      "description": "FED deployment."
+    },
+    {
+      "url": "https://api.in.sumologic.com",
+      "description": "IN deployment."
+    },
+    {
+      "url": "https://api.jp.sumologic.com",
+      "description": "JP deployment."
+    },
+    {
+      "url": "https://api.kr.sumologic.com",
+      "description": "KR deployment."
+    }
+  ],
+  "security": [
+    {
+      "BasicAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List users",
+        "description": "pkg/client/client.go getUsers. Paginated by continuation token: `next` from the response feeds the `token` query param, and the walk ends when `next` is absent.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "description": "Continuation token from the previous response's `next`. Omitted on the first page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size. Sumo Logic documents a range of 1-1000 with a default of 100; the connector always sends 1000 (resourcePageSize).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "includeServiceAccounts",
+            "in": "query",
+            "required": false,
+            "description": "Always sent by the connector, true or false, driven by config.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "summary": "Create a user",
+        "description": "pkg/client/client.go createUser. Account provisioning. roleIds is required by the API, so a user cannot be created without at least one role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{userID}": {
+      "get": {
+        "operationId": "getUser",
+        "summary": "Get a user",
+        "description": "pkg/client/client.go getUserByID.",
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "Update a user",
+        "description": "pkg/client/client.go updateUser. A full replace: firstName, lastName and roleIds are all resent, so a caller changing only roles must carry the names through or blank them.",
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "summary": "Delete a user",
+        "description": "pkg/client/client.go deleteUser. Hard delete; Sumo Logic has no soft-disable on this path, though isActive on updateUser can deactivate instead.",
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "operationId": "listRoles",
+        "summary": "List roles",
+        "description": "pkg/client/client.go getRoles, and SearchRoleByName which adds a `name` filter to the same operation and expects exactly one match.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "description": "Continuation token from the previous response's `next`. Omitted on the first page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size. Sumo Logic documents a range of 1-1000 with a default of 100; the connector always sends 1000 (resourcePageSize).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "description": "Exact role-name filter, sent only by SearchRoleByName.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{roleID}": {
+      "get": {
+        "operationId": "getRole",
+        "summary": "Get a role",
+        "description": "pkg/client/client.go getRole.",
+        "parameters": [
+          {
+            "name": "roleID",
+            "in": "path",
+            "required": true,
+            "description": "Role id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v1/roles/{roleID}/users/{userID}": {
+      "put": {
+        "operationId": "assignRoleToUser",
+        "summary": "Assign a role to a user",
+        "description": "pkg/client/client.go assignRoleToUser. PUT with no request body -- the membership is expressed entirely by the path.",
+        "parameters": [
+          {
+            "name": "roleID",
+            "in": "path",
+            "required": true,
+            "description": "Role id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role assigned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeRoleFromUser",
+        "summary": "Remove a role from a user",
+        "description": "pkg/client/client.go removeRoleFromUser.",
+        "parameters": [
+          {
+            "name": "roleID",
+            "in": "path",
+            "required": true,
+            "description": "Role id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "description": "User id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role removed."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "HTTP Basic with the API access ID as username and the access key as password (uhttp.NewBasicAuth)."
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "UserListResponse": {
+        "type": "object",
+        "description": "Sumo Logic's paginated envelope for users. `next` is absent on the last page, which is how the connector terminates.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "next": {
+            "type": "string",
+            "description": "Continuation token for the next page. Absent on the last page."
+          }
+        }
+      },
+      "RoleListResponse": {
+        "type": "object",
+        "description": "Sumo Logic's paginated envelope for roles. `next` is absent on the last page, which is how the connector terminates.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          "next": {
+            "type": "string",
+            "description": "Continuation token for the next page. Absent on the last page."
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "description": "Only the fields baton-sumo-logic reads. id is the user resource ID; roleIds drives the role grants.",
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "roleIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isLocked": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isMfaEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastLoginTimestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "description": "Only the fields baton-sumo-logic reads. id is the role resource ID. The nullable fields are pointers in Go, so the connector distinguishes absent from empty for them.",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "filterPredicate": {
+            "type": "string",
+            "nullable": true
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Member user ids."
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "autofillDependencies": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "systemDefined": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "System-defined roles cannot be edited."
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "modifiedAt": {
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "UserRequest": {
+        "type": "object",
+        "required": [
+          "firstName",
+          "lastName",
+          "email",
+          "roleIds"
+        ],
+        "description": "Body of createUser.",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "UserUpdateRequest": {
+        "type": "object",
+        "required": [
+          "firstName",
+          "lastName",
+          "roleIds"
+        ],
+        "description": "Body of updateUser. A full replacement of the mutable fields, not a patch.",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Deactivate without deleting."
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Sumo Logic's error shape, decoded into pkg/client/models.go ErrorResponse.",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}
